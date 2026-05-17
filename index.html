@@ -1161,7 +1161,20 @@ function doLogin() {
 }
 
 function doLogout() {
-  fbAuth.signOut();
+  if (!fbAuth) {
+    window.location.replace('login.html');
+    return;
+  }
+
+  fbAuth.signOut()
+    .then(function() {
+      currentUser = null;
+      window.location.replace('login.html');
+    })
+    .catch(function(err) {
+      console.error('Error al cerrar sesion:', err);
+      showToast('No se pudo cerrar sesion. Intentalo otra vez.');
+    });
 }
 
 function onUserLoggedIn(firebaseUser) {
@@ -1190,6 +1203,19 @@ function onUserLoggedIn(firebaseUser) {
     userBadge.style.color = '#fff';
     userBadge.style.display = 'inline-flex';
     userBadge.style.minWidth = '80px';
+  }
+
+  var profile = document.querySelector('.profile');
+  if (profile) {
+    var avatar = profile.querySelector('.avatar');
+    var nameEl = profile.querySelector('strong');
+    var subEl = profile.querySelector('span');
+    if (avatar) {
+      avatar.textContent = (info.name || firebaseUser.email || 'U').slice(0, 1).toUpperCase();
+      avatar.style.background = info.color;
+    }
+    if (nameEl) nameEl.textContent = info.name;
+    if (subEl) subEl.textContent = firebaseUser.email;
   }
 
   // Load state from Firestore
@@ -4155,7 +4181,7 @@ document.querySelector("#reset-demo").addEventListener("click", () => {
 })();
 
 renderNav();
-setView("dashboard");
+startApp();
 
     
 
