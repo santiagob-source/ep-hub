@@ -1340,6 +1340,23 @@ function startApp() {
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
+function htmlEscape(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function textParagraphs(value) {
+  var clean = String(value || "").trim();
+  if (!clean) return "<p>Sin completar.</p>";
+  return clean.split(/\n+/).map(function(part) {
+    return "<p>" + htmlEscape(part) + "</p>";
+  }).join("");
+}
+
 const navGroups = [
   {
     label: "Principal",
@@ -2570,6 +2587,7 @@ function renderCandidateDetail(id) {
         </div>
       </div>
       <div class="detail-actions">
+        <button class="primary-button" type="button" data-candidate-report="${candidate.id}">Crear informe</button>
         <button class="ghost-button" type="button" data-edit="candidates:${candidate.id}">Editar candidato</button>
       </div>
     </section>
@@ -2601,6 +2619,196 @@ function renderCandidateDetail(id) {
     </div>
     ${renderCandCallNotes(candidate)}
   `;
+}
+
+function getCandidateMainJob(candidate) {
+  var candJobs = normalize(candidate.jobs || "");
+  return state.jobs.find(function(job) {
+    return candJobs.includes(normalize(job.title)) || candJobs.includes(normalize(job.title + " - " + job.client));
+  }) || null;
+}
+
+function openCandidateReportModal(candidateId) {
+  var candidate = state.candidates.find(function(item) { return item.id === candidateId; });
+  if (!candidate) return;
+  var job = getCandidateMainJob(candidate);
+  var clientName = job ? job.client : "";
+  var jobTitle = job ? job.title : (candidate.jobs || "");
+  var report = (candidate.reports && candidate.reports[0]) || {};
+  var values = Object.assign({
+    client: clientName,
+    position: jobTitle,
+    candidateName: candidate.name || "",
+    residence: candidate.location || "",
+    education: "",
+    specialty: candidate.specialty || "",
+    location: candidate.location || "",
+    phone: candidate.phone || "",
+    email: candidate.email || "",
+    recruiter: state.currentUser || "Expansion People",
+    interviewAvailability: "",
+    experience: candidate.notes || "",
+    incorporation: "",
+    salaryExpectations: ""
+  }, report.values || {});
+
+  var modal = document.createElement("div");
+  modal.className = "modal show";
+  modal.innerHTML =
+    "<div class='modal-card' style='max-width:980px'>" +
+      "<div class='panel-header'><h2 class='panel-title'>Crear informe de candidato</h2>" +
+        "<button class='icon-button' type='button' data-close-candidate-report>&times;</button></div>" +
+      "<form class='panel-body form-grid' id='candidate-report-form'>" +
+        "<div class='field'><label>Proceso / posicion</label><input name='position' value='" + htmlEscape(values.position) + "' placeholder='Ej: CFO / Dermatologia / Direccion Financiera'/></div>" +
+        "<div class='field'><label>Cliente</label><input name='client' value='" + htmlEscape(values.client) + "' placeholder='Solo interno o si queres que aparezca'/></div>" +
+        "<div class='field'><label>Nombre y apellido</label><input name='candidateName' value='" + htmlEscape(values.candidateName) + "'/></div>" +
+        "<div class='field'><label>Residencia</label><input name='residence' value='" + htmlEscape(values.residence || values.location) + "'/></div>" +
+        "<div class='field'><label>Telefono</label><input name='phone' value='" + htmlEscape(values.phone) + "'/></div>" +
+        "<div class='field'><label>Email</label><input name='email' value='" + htmlEscape(values.email) + "'/></div>" +
+        "<div class='field'><label>Recruiter</label><input name='recruiter' value='" + htmlEscape(values.recruiter) + "'/></div>" +
+        "<div class='field'><label>Especialidad / perfil</label><input name='specialty' value='" + htmlEscape(values.specialty) + "'/></div>" +
+        "<div class='field full'><label>Formacion</label><textarea name='education' placeholder='Formacion academica y complementaria'>" + htmlEscape(values.education) + "</textarea></div>" +
+        "<div class='field full'><label>Experiencia profesional</label><textarea name='experience' placeholder='Experiencia clave del candidato'>" + htmlEscape(values.experience) + "</textarea></div>" +
+        "<div class='field full'><label>Incorporacion</label><textarea name='incorporation' placeholder='Inmediata, a convenir, preaviso...'>" + htmlEscape(values.incorporation) + "</textarea></div>" +
+        "<div class='field full'><label>Expectativas salariales</label><textarea name='salaryExpectations' placeholder='Salario actual / esperado / flexible...'>" + htmlEscape(values.salaryExpectations) + "</textarea></div>" +
+        "<div class='field full'><label>Disponibilidad para entrevista</label><textarea name='interviewAvailability' placeholder='Dias y horarios disponibles'>" + htmlEscape(values.interviewAvailability || values.availability) + "</textarea></div>" +
+      "</form>" +
+      "<div class='modal-footer'>" +
+        "<button class='ghost-button' type='button' data-close-candidate-report>Cancelar</button>" +
+        "<button class='primary-button' type='button' data-generate-candidate-report>Generar informe</button>" +
+      "</div>" +
+    "</div>";
+  document.body.appendChild(modal);
+  modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
+  modal.querySelectorAll("[data-close-candidate-report]").forEach(function(btn) {
+    btn.addEventListener("click", function() { modal.remove(); });
+  });
+  modal.querySelector("[data-generate-candidate-report]").addEventListener("click", function() {
+    var form = modal.querySelector("#candidate-report-form");
+    var data = Object.fromEntries(new FormData(form).entries());
+    var html = buildCandidateReportHTML(candidate, data);
+    candidate.reports = candidate.reports || [];
+    candidate.reports.unshift({
+      id: uid(),
+      date: new Date().toISOString(),
+      client: data.client,
+      position: data.position,
+      values: data,
+      html: html
+    });
+    saveState();
+    modal.remove();
+    openCandidateReportPreview(candidate.id, 0);
+    showToast("Informe generado");
+  });
+}
+
+function buildCandidateReportHTML(candidate, data) {
+  var today = new Date().toLocaleDateString("es-ES");
+  var name = data.candidateName || candidate.name || "Candidato";
+  var process = data.position || candidate.specialty || "Proceso";
+  var metaRows = [
+    ["Perfil", data.specialty || candidate.specialty],
+    ["Ubicacion", data.residence || data.location || candidate.location],
+    ["Telefono", data.phone || candidate.phone],
+    ["Email", data.email || candidate.email],
+    ["Proceso", process],
+    ["Recruiter", data.recruiter]
+  ];
+  var listRows = [
+    ["Nombre y apellido", name],
+    ["Residencia actual", data.residence || data.location || candidate.location],
+    ["Formación", data.education],
+    ["Experiencia profesional", data.experience],
+    ["Incorporación", data.incorporation],
+    ["Expectativas salariales", data.salaryExpectations],
+    ["Disponibilidad para entrevista", data.interviewAvailability || data.availability]
+  ];
+  var listHtml = listRows.map(function(row) {
+    return "<li><strong>" + htmlEscape(row[0]) + ":</strong> " + htmlEscape(row[1] || "Sin completar.") + "</li>";
+  }).join("");
+  return "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><title>Informe - " + htmlEscape(name) + "</title>" +
+    "<style>" +
+    "body{font-family:Arial,sans-serif;color:#1E293B;max-width:820px;margin:0 auto;padding:14px 48px 42px;font-size:12px;line-height:1.6;background:#fff}" +
+    ".page{min-height:1060px;page-break-after:always}.page:last-child{page-break-after:auto}" +
+    ".top{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0A1F5C;padding:0 0 10px;margin-bottom:12px;min-height:54px}" +
+    ".logo{width:104px;height:auto;object-fit:contain;display:block}.date{color:#64748B;text-align:right;font-size:10px;line-height:1.45}" +
+    ".eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#2563EB;font-weight:800;margin:0 0 12px}" +
+    "h1{font-size:44px;line-height:1.05;color:#0A1F5C;margin:0 0 12px;font-weight:800}h2{font-size:14px;color:#0A1F5C;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #CBD5E1;padding-bottom:7px;margin:28px 0 12px}" +
+    "p{margin:8px 0}.cover-main{padding-top:34px}.subtitle{color:#64748B;font-size:20px;margin:0 0 26px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin:22px 0}" +
+    ".meta div{display:grid;grid-template-columns:92px 1fr;gap:10px}.meta span{color:#64748B;font-weight:700}.meta strong{color:#1E293B}" +
+    ".candidate-note{border-left:4px solid #2563EB;background:#F8FAFC;padding:15px 18px;color:#475569;margin-top:18px}" +
+    ".report-list{margin:26px 0 0;padding:0;list-style:none}.report-list li{position:relative;padding-left:32px;margin:0 0 16px;font-size:12px;line-height:1.6;color:#111827}.report-list li:before{content:'';width:6px;height:6px;border-radius:50%;background:#000;position:absolute;left:0;top:8px}.report-list strong{color:#0A1F5C;font-size:12px;font-weight:800}" +
+    ".footer{margin-top:36px;padding-top:16px;border-top:1px solid #E2E8F0;color:#64748B;font-size:11px}" +
+    ".actions{position:sticky;top:0;background:#fff;padding:10px 0;margin:-20px 0 20px;text-align:right}.actions button{border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:9px 14px;font-weight:700;color:#0A1F5C;cursor:pointer;margin-left:8px}.actions button.primary{background:#0A1F5C;color:#fff;border-color:#0A1F5C}" +
+    "@media print{.actions{display:none!important}body{padding:14px 48px 42px}.page{min-height:980px}}" +
+    "</style></head><body>" +
+    "<div class='actions'><button onclick='window.print()' class='primary'>Imprimir / PDF</button></div>" +
+    "<section class='page'>" +
+    "<div class='top'><img class='logo' src='" + logoSrc + "' alt='Expansion People'><div class='date'>" + today + "<br>Informe confidencial</div></div>" +
+    "<div class='cover-main'><p class='eyebrow'>Informe de candidato</p><h1>" + htmlEscape(name) + "</h1>" +
+    "<p class='subtitle'>" + htmlEscape(data.specialty || "") + (process ? " · " + htmlEscape(process) : "") + "</p>" +
+    "<div class='meta'>" + metaRows.map(function(row) {
+      return "<div><span>" + htmlEscape(row[0]) + "</span><strong>" + htmlEscape(row[1] || "-") + "</strong></div>";
+    }).join("") + "</div>" +
+    "<div class='candidate-note'>Presentación preparada para valorar el encaje profesional, motivacional y competencial del perfil.</div></div>" +
+    "<div class='footer'>Expansion People · Informe de candidato</div>" +
+    "</section>" +
+    "<section class='page'>" +
+    "<div class='top'><img class='logo' src='" + logoSrc + "' alt='Expansion People'><div class='date'>" + htmlEscape(name) + "<br>" + htmlEscape(process) + "</div></div>" +
+    "<ul class='report-list'>" + listHtml + "</ul>" +
+    "</section>" +
+    "</body></html>";
+}
+
+function openCandidateReportPreview(candidateId, reportIdx) {
+  var candidate = state.candidates.find(function(item) { return item.id === candidateId; });
+  if (!candidate || !candidate.reports || !candidate.reports[reportIdx]) return;
+  var report = candidate.reports[reportIdx];
+  var modal = document.createElement("div");
+  modal.className = "modal show";
+  modal.innerHTML =
+    "<div class='modal-card' style='max-width:1100px;height:86vh;display:flex;flex-direction:column'>" +
+      "<div class='panel-header'><h2 class='panel-title'>Informe generado</h2>" +
+        "<button class='icon-button' type='button' data-close-report-preview>&times;</button></div>" +
+      "<div class='panel-body' style='flex:1;min-height:0;padding:0'>" +
+        "<iframe title='Informe candidato' style='width:100%;height:100%;border:0;background:#fff' sandbox='allow-same-origin allow-modals'></iframe>" +
+      "</div>" +
+      "<div class='modal-footer'>" +
+        "<button class='ghost-button' type='button' data-close-report-preview>Cerrar</button>" +
+        "<button class='ghost-button' type='button' data-download-candidate-report>Descargar Word</button>" +
+        "<button class='primary-button' type='button' data-print-candidate-report>Imprimir / PDF</button>" +
+      "</div>" +
+    "</div>";
+  document.body.appendChild(modal);
+  var iframe = modal.querySelector("iframe");
+  iframe.srcdoc = report.html;
+  modal.querySelectorAll("[data-close-report-preview]").forEach(function(btn) {
+    btn.addEventListener("click", function() { modal.remove(); });
+  });
+  modal.querySelector("[data-print-candidate-report]").addEventListener("click", function() {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+  });
+  modal.querySelector("[data-download-candidate-report]").addEventListener("click", function() {
+    downloadCandidateReportWord(candidate, report);
+  });
+}
+
+function downloadCandidateReportWord(candidate, report) {
+  var wordHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>" +
+    "<head><meta charset='utf-8'><title>Informe " + htmlEscape(candidate.name) + "</title>" +
+    "<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--></head><body>" +
+    report.html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<div class=['\"]actions['\"][\s\S]*?<\/div>/, "") +
+    "</body></html>";
+  var blob = new Blob([wordHtml], { type: "application/msword" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "Informe_" + (candidate.name || "candidato").replace(/[^a-zA-Z0-9]+/g, "_") + ".doc";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Descargando informe");
 }
 
 function renderCandCallNotes(candidate) {
@@ -3830,6 +4038,12 @@ document.addEventListener("click", (event) => {
     render();
   }
 
+  const candidateReport = event.target.closest("[data-candidate-report]");
+  if (candidateReport) {
+    openCandidateReportModal(candidateReport.dataset.candidateReport);
+    return;
+  }
+
   const scopeFilter = event.target.closest("[data-scope-filter]");
   if (scopeFilter) {
     const [key, value] = scopeFilter.dataset.scopeFilter.split(":");
@@ -4991,34 +5205,32 @@ function prop_generateHTML(p, client, tipo) {
     '@media print{.no-print{display:none!important}}' +
     '</style></head><body>' +
 
-    // Portada / Header
-    '<div class="header">' +
-      '<div>'+logo+'</div>' +
-      '<div style="text-align:right">' +
-        '<div style="font-size:12px;color:#64748B">Barcelona, '+p.date+'</div>' +
-        
-      '</div>' +
-    '</div>' +
-
-    // Year badge
     // Cover page
     (function(){
       var yr = p.validity ? p.validity.replace(/hasta/i,'').replace(/^[\s,]+/,'').trim() : (new Date().getFullYear() + '-' + (new Date().getFullYear()+1));
       var c = '';
-      c += '<div style="width:100%;background:#fff;margin:-40px -40px 40px -40px;padding:0;">';
-      c += '  <div style="padding:28px 36px 20px">';
-      c += '    <img src="' + logoSrc + '" style="height:50px;object-fit:contain;display:block" alt="Expansion People"/>';
+      c += '<section style="min-height:760px;margin:-40px -40px 42px -40px;padding:42px 48px;background:#fff;page-break-after:always;display:flex;flex-direction:column;border-bottom:1px solid #E2E8F0">';
+      c += '  <div style="display:flex;justify-content:space-between;align-items:flex-start">';
+      c += '    <img src="' + logoSrc + '" style="height:58px;object-fit:contain;display:block" alt="Expansion People"/>';
+      c += '    <div style="font-size:20px;color:#0A1F5C;text-align:right;line-height:1.4;font-weight:800">Año ' + yr + '</div>';
       c += '  </div>';
-      c += '  <div style="padding:80px 36px 120px">';
-      c += '    <div style="border:1.5px solid #2563EB;padding:28px 32px;display:inline-block;min-width:300px;max-width:420px">';
-      c += '      <div style="font-size:20px;font-weight:700;color:#2563EB;margin-bottom:14px">' + yr + '</div>';
-      c += '      <div style="font-size:42px;font-weight:800;color:#1A1A2E;line-height:1.15;letter-spacing:-1px">Propuesta<br>de servicios</div>';
+      c += '  <div style="flex:1;display:flex;align-items:flex-start;padding-top:86px">';
+      c += '    <div style="max-width:610px">';
+      c += '      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:#2563EB;font-weight:800;margin-bottom:18px">Propuesta de colaboración</div>';
+      c += '      <h1 style="font-size:44px;line-height:1.08;color:#0A1F5C;margin:0 0 22px;font-weight:800">Servicios de búsqueda y selección</h1>';
+      c += '      <p style="font-size:17px;color:#475569;line-height:1.7;margin:0">Preparada para <strong style="color:#1E293B">' + p.clientName + '</strong> por Expansion People.</p>';
+      c += '      <div style="margin-top:38px;display:grid;grid-template-columns:150px 1fr;gap:10px 20px;font-size:13px">';
+      c += '        <div style="color:#94A3B8;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Consultor</div><div style="font-weight:700;color:#1E293B">' + p.consultor + '</div>';
+      c += '        <div style="color:#94A3B8;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Vigencia</div><div style="font-weight:700;color:#1E293B">' + yr + '</div>';
+      c += '        <div style="color:#94A3B8;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Cliente</div><div style="font-weight:700;color:#1E293B">' + p.clientName + '</div>';
+      c += '      </div>';
       c += '    </div>';
       c += '  </div>';
-      c += '  <div style="width:100%;height:220px;overflow:hidden">';
-      c += '    <img src="' + bannerSrc + '" style="width:100%;height:220px;object-fit:cover;object-position:center center;display:block" alt=""/>';
+      c += '  <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #E2E8F0;padding-top:22px">';
+      c += '    <div style="font-size:12px;color:#64748B">Expansion Business 2021 S.L.</div>';
+      c += '    <div style="font-size:12px;color:#64748B;text-align:right">Barcelona · Madrid</div>';
       c += '  </div>';
-      c += '</div>';
+      c += '</section>';
       return c;
     })() +
 
