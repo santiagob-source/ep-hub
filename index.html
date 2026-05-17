@@ -1164,7 +1164,9 @@ function doLogout() {
 }
 
 function onUserLoggedIn(firebaseUser) {
+  console.log('Usuario logueado:', firebaseUser.email);
   var info = EP_USERS[firebaseUser.email] || { name: firebaseUser.email.split('@')[0], role: 'consultant', color: '#64748B' };
+  console.log('Info encontrada:', info);
   currentUser = { uid: firebaseUser.uid, email: firebaseUser.email, name: info.name, role: info.role, color: info.color };
 
   // Remove login screen
@@ -1183,7 +1185,10 @@ function onUserLoggedIn(firebaseUser) {
   if (userBadge) {
     userBadge.textContent = '👤 ' + info.name;
     userBadge.style.background = info.color;
+    userBadge.style.border = '2px solid ' + info.color;
+    userBadge.style.color = '#fff';
     userBadge.style.display = 'inline-flex';
+    userBadge.style.minWidth = '80px';
   }
 
   // Load state from Firestore
