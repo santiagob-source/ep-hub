@@ -1297,6 +1297,8 @@ function startApp() {
     console.error('Firebase init failed, local mode:', err);
     state = loadStateLocal();
     currentUser = { uid: 'local', email: 'local', name: 'Santi', role: 'admin', color: '#0A1F5C' };
+    var userBadge = document.getElementById('topbar-user-badge');
+    if (userBadge) { userBadge.textContent = '👤 Santi'; userBadge.style.background = '#0A1F5C'; userBadge.style.display = 'inline-flex'; }
     var appEl = document.getElementById('app');
     if (appEl) appEl.style.display = '';
     var topbar = document.querySelector('.topbar');
