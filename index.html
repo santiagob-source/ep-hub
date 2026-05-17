@@ -991,7 +991,6 @@ tr:hover td { background: #FAFBFC; }
         </div>
         <div class="topbar-actions">
           <span id="topbar-user-badge" style="display:none;align-items:center;gap:7px;padding:0 12px;height:34px;border-radius:8px;font-size:13px;font-weight:700;color:#fff;background:#0A1F5C"></span>
-          <button id="reset-demo" class="ghost-button" type="button">Reiniciar demo</button>
           <button onclick="exportarDatos()" class="ghost-button" type="button" title="Exportar todos tus datos como backup">&#128190; Exportar datos</button>
           <button onclick="importarDatos()" class="ghost-button" type="button" style="background:#EFF6FF;border-color:#BFDBFE;color:#1B3E8A" title="Importar datos desde backup">&#128228; Importar datos</button>
           <button onclick="doLogout()" class="ghost-button" type="button" style="color:#EF4444;border-color:#FECACA" title="Cerrar sesión">&#128274; Salir</button>
@@ -1239,6 +1238,9 @@ function saveState() {
     placements: state.placements || [],
     invoices:   state.invoices   || [],
     commercial: state.commercial || [],
+    goals:      state.goals      || [],
+    reportProjects: state.reportProjects || [],
+    initialDataVersion: state.initialDataVersion || initialDataVersion,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     updatedBy: currentUser.name
   }, { merge: true });
@@ -1246,7 +1248,7 @@ function saveState() {
   fbDb.collection('user_data').doc(currentUser.uid).set({
     tasks:    state.tasks    || [],
     events:   state.events   || [],
-    routine:  state.routine  || {},
+    routine:  state.routine  || [],
     notas:    state.notas    || [],
     fichajes: state.fichajes || [],
     pomodoro: state.pomodoro || {},
@@ -1264,7 +1266,14 @@ function loadStateFromFirestore() {
     var personal = results[1].exists ? results[1].data() : {};
     // Merge with local seed if empty
     var local = loadStateLocal();
+    if (shared.initialDataVersion !== initialDataVersion) {
+      state = createStarterState();
+      saveState();
+      console.log('Starter data applied');
+      return;
+    }
     state = {
+      initialDataVersion: shared.initialDataVersion || local.initialDataVersion || initialDataVersion,
       clients:    shared.clients    || local.clients    || [],
       jobs:       shared.jobs       || local.jobs       || [],
       candidates: shared.candidates || local.candidates || [],
@@ -1272,20 +1281,21 @@ function loadStateFromFirestore() {
       placements: shared.placements || local.placements || [],
       invoices:   shared.invoices   || local.invoices   || [],
       commercial: shared.commercial || local.commercial || [],
+      goals:      shared.goals      || local.goals      || [],
       tasks:      personal.tasks    || local.tasks      || [],
       events:     personal.events   || local.events     || [],
-      routine:    personal.routine  || local.routine    || {},
+      routine:    personal.routine  || local.routine    || [],
       notas:      personal.notas    || local.notas      || [],
       fichajes:   personal.fichajes || local.fichajes   || [],
       pomodoro:   personal.pomodoro || local.pomodoro   || {},
-      reportProjects: local.reportProjects || clone(seed.reportProjects)
+      reportProjects: shared.reportProjects || local.reportProjects || []
     };
     // Ensure required fields
     state.pomodoro.mode ||= 'Búsqueda';
     state.pomodoro.minutes ||= 25;
     state.pomodoro.remaining ||= state.pomodoro.minutes * 60;
-    state.pomodoro.activities ||= clone(seed.pomodoro.activities);
-    if (!state.notas.length) state.notas = [{id:uid(),title:'Nota 1',content:'',color:'#FEF9C3'},{id:uid(),title:'Nota 2',content:'',color:'#DCFCE7'}];
+    state.pomodoro.activities ||= defaultPomodoroActivities();
+    if (!Array.isArray(state.notas)) state.notas = [];
     state.fichajes ||= [];
     console.log('State loaded from Firestore');
   }).catch(function(err) {
@@ -1296,16 +1306,154 @@ function loadStateFromFirestore() {
 
 function loadStateLocal() {
   var stored = localStorage.getItem(storageKey);
-  var loaded = stored ? JSON.parse(stored) : clone(seed);
-  loaded.reportProjects ||= clone(seed.reportProjects);
-  loaded.pomodoro ||= clone(seed.pomodoro);
+  var loaded = stored ? JSON.parse(stored) : createStarterState();
+  loaded.reportProjects ||= [];
+  loaded.pomodoro ||= createEmptyState().pomodoro;
   loaded.fichajes ||= [];
-  loaded.notas ||= [{id:uid(),title:'Nota 1',content:'',color:'#FEF9C3'},{id:uid(),title:'Nota 2',content:'',color:'#DCFCE7'}];
+  if (!Array.isArray(loaded.notas)) loaded.notas = [];
   loaded.pomodoro.mode ||= 'Búsqueda';
   loaded.pomodoro.minutes ||= 25;
   loaded.pomodoro.remaining ||= loaded.pomodoro.minutes * 60;
-  loaded.pomodoro.activities ||= clone(seed.pomodoro.activities);
+  loaded.pomodoro.activities ||= defaultPomodoroActivities();
   return loaded;
+}
+
+function defaultPomodoroActivities() {
+  return [
+    { id: "pom-busqueda", name: "Busqueda", minutes: 50 },
+    { id: "pom-entrevistas", name: "Entrevistas", minutes: 30 },
+    { id: "pom-comercial", name: "Comercial", minutes: 45 },
+    { id: "pom-informes", name: "Informes", minutes: 40 },
+    { id: "pom-recreo", name: "Recreo", minutes: 10 }
+  ];
+}
+
+function createEmptyState() {
+  return {
+    initialDataVersion: initialDataVersion,
+    currentUser: "Santi",
+    candidates: [],
+    clients: [],
+    jobs: [],
+    tasks: [],
+    events: [],
+    routine: [],
+    commercial: [],
+    placements: [],
+    goals: [],
+    forecast: [],
+    invoices: [],
+    reportProjects: [],
+    fichajes: [],
+    notas: [],
+    dashWidgets: ["stats", "urgentes", "candidatos", "jobs", "placements", "tasks"],
+    pomodoro: {
+      minutes: 25,
+      running: false,
+      remaining: 1500,
+      mode: "Busqueda",
+      activities: defaultPomodoroActivities()
+    }
+  };
+}
+
+function createStarterState() {
+  var starter = createEmptyState();
+  starter.clients = [
+    {
+      id: "client-althaia",
+      name: "Althaia",
+      status: "Activo",
+      contact: "",
+      phone: "",
+      email: "",
+      jobs: "Dirección Mutua",
+      notes: "",
+      razonSocial: "ALTHAIA XARXA ASSISTENCIAL UNIVERSITARIA DE MANRESA FUNDACIO PRIVADA",
+      cif: "",
+      dirFac: "Dr. Joan Soler, 1-3, 08241 Manresa (Barcelona), España"
+    },
+    {
+      id: "client-institut-pere-mata",
+      name: "Institut Pere Mata",
+      status: "Activo",
+      contact: "",
+      phone: "",
+      email: "",
+      jobs: "Psiquiatra Adulto, Psiquiatra Infanto Juvenil",
+      notes: "",
+      razonSocial: "Institut Pere Mata, S.A.",
+      cif: "",
+      dirFac: "Carretera de l'Institut Pere Mata, s/n, 43206 Reus (Tarragona), España"
+    },
+    {
+      id: "client-fundacion-pere-mata",
+      name: "Fundación Pere Mata",
+      status: "Activo",
+      contact: "",
+      phone: "",
+      email: "",
+      jobs: "Psiquiatra",
+      notes: ""
+    },
+    {
+      id: "client-rums",
+      name: "RUMS",
+      status: "Activo",
+      contact: "",
+      phone: "",
+      email: "",
+      jobs: "Personal Mantenimiento, Interiorista",
+      notes: "",
+      razonSocial: "RUMS 2023 S.L.",
+      cif: "",
+      dirFac: "Calle Iradier, 29 - Bis, 08017 Barcelona (Barcelona), España"
+    },
+    {
+      id: "client-hospital-parque-don-benito",
+      name: "Hospital Parque Don Benito",
+      status: "Activo",
+      contact: "",
+      phone: "",
+      email: "",
+      jobs: "Dermatología, Psiquiatra, Reumatología, COT, Alergología",
+      notes: "",
+      razonSocial: "EXTREMEÑA DE GESTION SANITARIA Y ESPECIALIDADES MEDICAS SL",
+      cif: "",
+      dirFac: "Avenida Madrid, 12, 06400 Don Benito (Badajoz), España"
+    },
+    {
+      id: "client-hospital-parque-llevant",
+      name: "Hospital Parque Llevant",
+      status: "Activo",
+      contact: "",
+      phone: "",
+      email: "",
+      jobs: "Cardiología, Intensivista, Ginecología, Dermatología",
+      notes: "",
+      razonSocial: "HOSPITAL DE LLEVANT SL.",
+      cif: "",
+      dirFac: "Calle de l'Escamarla, 6, 07680 Porto Cristo (Islas Baleares), España"
+    }
+  ];
+  starter.jobs = [
+    { id: "job-althaia-direccion-mutua", title: "Dirección Mutua", client: "Althaia", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-institut-pere-mata-psiquiatra-adulto", title: "Psiquiatra Adulto", client: "Institut Pere Mata", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-institut-pere-mata-psiquiatra-infanto-juvenil", title: "Psiquiatra Infanto Juvenil", client: "Institut Pere Mata", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-fundacion-pere-mata-psiquiatra", title: "Psiquiatra", client: "Fundación Pere Mata", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-rums-personal-mantenimiento", title: "Personal Mantenimiento", client: "RUMS", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-rums-interiorista", title: "Interiorista", client: "RUMS", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-hospital-parque-don-benito-dermatologia", title: "Dermatología", client: "Hospital Parque Don Benito", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-hospital-parque-don-benito-psiquiatra", title: "Psiquiatra", client: "Hospital Parque Don Benito", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-hospital-parque-don-benito-reumatologia", title: "Reumatología", client: "Hospital Parque Don Benito", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-hospital-parque-don-benito-cot", title: "COT", client: "Hospital Parque Don Benito", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-hospital-parque-don-benito-alergologia", title: "Alergología", client: "Hospital Parque Don Benito", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-hospital-parque-llevant-cardiologia", title: "Cardiología", client: "Hospital Parque Llevant", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-hospital-parque-llevant-intensivista", title: "Intensivista", client: "Hospital Parque Llevant", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-hospital-parque-llevant-ginecologia", title: "Ginecología", client: "Hospital Parque Llevant", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" },
+    { id: "job-hospital-parque-llevant-dermatologia", title: "Dermatología", client: "Hospital Parque Llevant", owner: "Santi", fee: 0, status: "Busqueda", pipeline: [], notes: "" }
+  ];
+  return starter;
 }
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -1407,6 +1555,7 @@ const navGroups = [
 const seed = {"currentUser":"Santi","candidates":[{"id":"id-mp27aa7l-og6nhea1","name":"Dra. Ana Garcia Robles","phone":"+34 696 297 828","email":"annagarciarobles@yahoo.es","specialty":"Medicina del Trabajo y Deportiva","location":"Barcelona","status":"CV Recibido","cv":"CV_Dra_ANA_GARCIA_ROBLES_2025.pdf","linkedin":"","notes":"Directora Medica Centre Medic Nen Deu. PMD Esade en curso. Especialista MT y Medicina Deportiva. Odontologa implantologia.","jobs":"Direccion Medica Mutua - Althaia Manresa"},{"id":"id-mp27aa7l-ob9tl9us","name":"Dr. Marcio Victor Dias","phone":"+34 617 783 759","email":"marciovictordias@gmail.com","specialty":"Psiquiatria / Medicina de Familia","location":"Aguilas, Murcia","status":"CV Recibido","cv":"1_CV_MVDM.pdf","linkedin":"","notes":"Medico psiquiatra con experiencia en Brasil y Espana. Homologado en Espana.","jobs":"Psiquiatra Adultos - Fundacion Pere Mata"},{"id":"id-mp27aa7l-gpzc86mu","name":"Dra. Olga Menendez Rodriguez","phone":"+34 645 159 457","email":"olgamenrod@gmail.com","specialty":"Psiquiatria","location":"Ourense","status":"CV Recibido","cv":"CV_OLGA_MENENDEZ.pdf","linkedin":"","notes":"Psiquiatra +15 anos experiencia. Homologada Espana.","jobs":"Psiquiatra Adultos - Fundacion Pere Mata"},{"id":"id-mp27aa7l-cft9ntkr","name":"Dr. Guilherme Brasil Mourao","phone":"+34 642 744 539","email":"pacientebrasil@gmail.com","specialty":"Psiquiatria","location":"Lleida, Catalunya","status":"CV Recibido","cv":"CV_Guilherme_Brasil.pdf","linkedin":"","notes":"Especialista psiquiatria UBA. Actualmente Hospital Sant Joan de Deu Lleida.","jobs":"Psiquiatra Adultos - Fundacion Pere Mata"},{"id":"id-mp27aa7l-h6uviqu6","name":"Dr. Cheng Hao Zhan Dong","phone":"","email":"","specialty":"Oftalmologia","location":"Madrid","status":"CV Recibido","cv":"CV_Dr_ChengHaoZhan_Oftalmo.pdf","linkedin":"linkedin.com/in/cheng-haozhan-dong-b76276251","notes":"R4 Oftalmologia H.G.U. Gregorio Maranon. Finalizacion mayo 2026.","jobs":"Oftalmologia - Parque Canarias"},{"id":"id-mp27aa7l-gr5h5twv","name":"Dra. Carolina Fernandez Quiroga","phone":"+34 662 424 604","email":"drafernandezquiroga@gmail.com","specialty":"Dermatologia","location":"Barcelona","status":"CV Recibido","cv":"HISTORIAL_PROFESIONAL_2026.docx","linkedin":"","notes":"Especialista Dermatologia homologada Espana.","jobs":"Dermatologia - Parque Don Benito"},{"id":"id-mp27aa7l-35xewdkd","name":"Dr. Israel Cabrera Pinargote","phone":"+34 636 833 909","email":"dr.israelcabrera@outlook.com","specialty":"Psiquiatria","location":"Llerena, Badajoz","status":"CV Recibido","cv":"CV_ISRAEL_CABRERA_ULTIMO.pdf","linkedin":"","notes":"Psiquiatra homologado Espana. Coordinador Equipo Salud Mental Llerena.","jobs":"Psiquiatra - Parque Don Benito"},{"id":"id-mp27aa7l-kteo86u1","name":"Vanessa Saez Zambrana","phone":"","email":"","specialty":"Office / Servicios Generales","location":"Castelldefels, Barcelona","status":"CV Recibido","cv":"Informe_Vanessa_Saez_final.pdf","linkedin":"","notes":"20 anos exp. administrativa. MRW gestion rutas y flota.","jobs":"Office Manager Renting Flota - Medcomtech"},{"id":"id-mp27aa7l-iabmbmpc","name":"Adriana Guerra Herrera","phone":"","email":"","specialty":"Office / Servicios Generales","location":"Esplugues de Llobregat, Barcelona","status":"CV Recibido","cv":"Informe_Adriana_Guerra_final.pdf","linkedin":"","notes":"15 anos atencion cliente movilidad. AVIS y Europcar.","jobs":"Office Manager Renting Flota - Medcomtech"},{"id":"id-mp27aa7l-pza36plg","name":"Irene Maymus Gomez","phone":"","email":"","specialty":"Office / Servicios Generales","location":"L Hospitalet de Llobregat, Barcelona","status":"CV Recibido","cv":"Informe_Irene_Maymus_final.pdf","linkedin":"","notes":"15+ anos admin comercial. CBC Iberia: flota 36 vehiculos renting.","jobs":"Office Manager Renting Flota - Medcomtech"},{"id":"id-mp27aa7l-impw1msi","name":"Natalia Cedres Martinez","phone":"","email":"","specialty":"Office / Servicios Generales","location":"Viladecans","status":"CV Recibido","cv":"Informe_Natalia_Cedres_final.pdf","linkedin":"","notes":"20+ anos exp administrativa. 17 anos empresa alquiler vehiculos.","jobs":"Office Manager Renting Flota - Medcomtech"},{"id":"id-mp27aa7l-r0j0yoxl","name":"Adria de Simon Guardia","phone":"","email":"","specialty":"Gestion de Flotas / Automocion","location":"Barcelona","status":"CV Recibido","cv":"Informe_Adria_de_Simon_final.pdf","linkedin":"","notes":"Especialista flota automocion. Bertrandt/Cupra ~200 vehiculos.","jobs":"Office Manager Renting Flota - Medcomtech"}],"clients":[{"id":"id-mp27aa7l-jyff69b8","name":"Althaia Manresa","status":"Activo","contact":"Alvaro","phone":"","email":"","jobs":"Direccion Medica Mutua","notes":"","razonSocial":"ALTHAIA, Xarxa Assistencial Universitaria de Manresa. Fundacio Privada","cif":"G-58.286.303","dirFac":"Dr. Joan Soler, 1-3, Manresa"},{"id":"id-mp27aa7l-nvoam42u","name":"Avericum","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-ozn39206","name":"Caser","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-st180ch6","name":"Elecnor","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-piuu8237","name":"Fundacion Pere Mata","status":"Activo","contact":"","phone":"","email":"","jobs":"Psiquiatra Infanto, Psiquiatra Adultos","notes":""},{"id":"id-mp27aa7l-nmdyzg86","name":"HM Hospitales","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-5n4lad34","name":"IMED Valencia","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-locvwvzn","name":"Institut Pere Mata","status":"Activo","contact":"","phone":"","email":"","jobs":"Psiquiatra Infanto, Psiquiatra Adultos","notes":"","razonSocial":"Institut Pere Mata, S.A.","cif":"A43000157","dirFac":"Carretera de l Institut Pere Mata s/n 43206 Reus (Tarragona)"},{"id":"id-mp27aa7l-yxayxxwq","name":"Juaneda","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-615a0v2u","name":"La Vostra Llar","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-0vz3njxb","name":"Llevant","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-349kgcoo","name":"Medcomtech","status":"Activo","contact":"","phone":"","email":"","jobs":"Office Manager Renting Flota, Facturacion Barcelona, Facturacion Madrid","notes":""},{"id":"id-mp27aa7l-r56cmkc0","name":"Metropolitano Jaen","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-zjv28t0o","name":"Parque Canarias","status":"Activo","contact":"","phone":"","email":"","jobs":"Oftalmologia","notes":""},{"id":"id-mp27aa7l-fxtubk9b","name":"Parque Don Benito","status":"Activo","contact":"","phone":"","email":"","jobs":"Dermatologia, Psiquiatra","notes":"","razonSocial":"Extremena de Gestion Sanitaria y Especialidades Medicas S.L.U.","cif":"B-85375285","dirFac":"Avenida de Madrid 12, 06400 Don Benito (Badajoz)"},{"id":"id-mp27aa7l-0fef01iy","name":"Policlinica Rosario","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-apvn3ocs","name":"Policlinica San Miguel","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-aksstop8","name":"Ribera","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-s9lwtl2c","name":"RUMS","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-jxuoe4hx","name":"Sanitas","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-ekf2oq5o","name":"Santa Maria Lleida","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-2t4dr69g","name":"Sergas","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-g08692ds","name":"Servidigest","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-l7cqyvgn","name":"SP Activa","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-xzwy6oax","name":"Vic","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp27aa7l-puaqbezs","name":"Weinerlab","status":"Activo","contact":"","phone":"","email":"","jobs":"","notes":""},{"id":"id-mp2a7p1w-h402i14w","name":"Alvaro Laforet","status":"Activo","contact":"625 85 38 43","phone":"","email":"","jobs":"","notes":""}],"jobs":[{"id":"id-mp27aa7l-kfy4iby7","title":"Direccion Medica Mutua","client":"Althaia Manresa","owner":"Santi","fee":0,"status":"En proceso","pipeline":[{"name":"Dra. Ana Garcia Robles","stage":"Busqueda"}],"notes":""},{"id":"id-mp27aa7l-9ykrvl6u","title":"Psiquiatra Infanto-Juvenil","client":"Fundacion Pere Mata","owner":"Santi","fee":0,"status":"En proceso","pipeline":[],"notes":""},{"id":"id-mp27aa7l-zv4cbk2y","title":"Psiquiatra Adultos","client":"Fundacion Pere Mata","owner":"Santi","fee":0,"status":"En proceso","pipeline":[{"name":"Dr. Marcio Victor Dias","stage":"Busqueda"},{"name":"Dra. Olga Menendez Rodriguez","stage":"Busqueda"},{"name":"Dr. Guilherme Brasil Mourao","stage":"Busqueda"}],"notes":""},{"id":"id-mp27aa7l-uisbi0o4","title":"Psiquiatra Infanto-Juvenil","client":"Institut Pere Mata","owner":"Santi","fee":0,"status":"En proceso","pipeline":[],"notes":""},{"id":"id-mp27aa7l-62df9tmd","title":"Psiquiatra Adultos","client":"Institut Pere Mata","owner":"Santi","fee":0,"status":"En proceso","pipeline":[{"name":"Dr. Marcio Victor Dias","stage":"Busqueda"},{"name":"Dra. Olga Menendez Rodriguez","stage":"Busqueda"},{"name":"Dr. Guilherme Brasil Mourao","stage":"Busqueda"}],"notes":""},{"id":"id-mp27aa7l-lisx72vu","title":"Oftalmologia","client":"Parque Canarias","owner":"Santi","fee":0,"status":"En proceso","pipeline":[{"name":"Dr. Cheng Hao Zhan Dong","stage":"Busqueda"}],"notes":""},{"id":"id-mp27aa7l-4vfvloqk","title":"Dermatologia","client":"Parque Don Benito","owner":"Santi","fee":4000,"status":"En proceso","pipeline":[{"name":"Dra. Carolina Fernandez Quiroga","stage":"Entrevista C/C"}],"notes":"","feePercent":16,"salaryAgreed":25000,"forecastMonth":"Abril"},{"id":"id-mp27aa7l-d21481n9","title":"Psiquiatra","client":"Parque Don Benito","owner":"Santi","fee":4000,"status":"En proceso","pipeline":[{"name":"Dr. Israel Cabrera Pinargote","stage":"Busqueda"}],"notes":"","feePercent":16,"salaryAgreed":25000},{"id":"id-mp27aa7l-x7xnqg03","title":"Office Manager Renting Flota","client":"Medcomtech","owner":"Santi","fee":0,"status":"En proceso","pipeline":[{"name":"Vanessa Saez Zambrana","stage":"Busqueda"},{"name":"Adriana Guerra Herrera","stage":"Busqueda"},{"name":"Irene Maymus Gomez","stage":"Busqueda"},{"name":"Natalia Cedres Martinez","stage":"Busqueda"},{"name":"Adria de Simon Guardia","stage":"Busqueda"}],"notes":""},{"id":"id-mp27aa7l-xo48gmco","title":"Facturacion Barcelona","client":"Medcomtech","owner":"Santi","fee":0,"status":"Busqueda","pipeline":[],"notes":""},{"id":"id-mp27aa7l-7m9buoux","title":"Facturacion Madrid","client":"Medcomtech","owner":"Santi","fee":0,"status":"Busqueda","pipeline":[],"notes":""},{"id":"id-mp2fvoui-01b5fj84","pipeline":[],"client":"Parque Don Benito","status":"Busqueda","owner":"Santi","fee":4000,"title":"Alergologia","notes":"","feePercent":16,"salaryAgreed":25000},{"id":"id-mp2fwyf4-6dd7ncsm","pipeline":[],"client":"Parque Don Benito","status":"Busqueda","owner":"Santi","fee":4000,"title":"Reumatologia","notes":"","feePercent":16,"salaryAgreed":25000},{"id":"id-mp2fxuhd-6os6k583","pipeline":[],"client":"Parque Don Benito","status":"Busqueda","owner":"Santi","fee":4000,"title":"Traumatologia columna","notes":"","feePercent":16,"salaryAgreed":25000}],"tasks":[{"id":"id-mp2a9hwp-2l6t0csa","done":false,"title":"Mandar Propuesta","priority":"Alta","due":"","linkedTo":"Alvaro Laforet","notes":""},{"id":"id-mp2bx5qd-hri6llgg","done":false,"title":"Facturar","priority":"Alta","due":"2026-05-12T09:48","linkedTo":"RUMS","notes":""},{"id":"id-mp2dkr4m-8b5cbmn0","done":false,"title":"Llamar Florencia Tot","priority":"Media","due":"2026-05-12T15:40","linkedTo":"Institut Pere Mata","notes":"+54 9 11 3055 1988"},{"id":"id-mp2dwrv4-efz3smkx","done":false,"title":"Llamar Andres Chavarria Martinez","priority":"Media","due":"2026-05-12T19:30","linkedTo":"Fundacion Pere Mata","notes":"689334726 - habla despues 19:30"},{"id":"id-mp2e0sw6-aa8xsuf5","done":false,"title":"Llamar Alba Perez Martinez","priority":"Media","due":"2026-05-12T16:47","linkedTo":"Institut Pere Mata","notes":"649342216 - MIR"},{"id":"id-mp2epk77-eaef7qo9","done":false,"title":"Llamar Jhoana Delgado Flores","priority":"Media","due":"2026-05-12T16:09","linkedTo":"Institut Pere Mata","notes":"Volver a llamar. Va a estar en Calella"},{"id":"id-mp2eqycd-18c60oo5","done":false,"title":"Llamar Camila Blanco","priority":"Media","due":"2026-05-12T16:12","linkedTo":"Juaneda","notes":"658 697841"},{"id":"id-mp2es543-a39yxjoo","done":false,"title":"AGREGAR VIDEO INFOJOBS","priority":"Media","due":"","linkedTo":"","notes":""},{"id":"id-mp2ev6vb-h5tbina5","done":false,"title":"Averiguar salario Ginecologa","priority":"Media","due":"","linkedTo":"Llevant","notes":""},{"id":"id-mp2f61jk-xu2cbseq","done":false,"title":"LLAMAR CESAR D","priority":"Media","due":"2026-05-12T16:19","linkedTo":"Llevant","notes":"667494112"}],"events":[{"id":"id-mp27aa7l-2slp6a52","day":"Lunes","time":"10:00","title":"Bloque comercial"},{"id":"id-mp27aa7l-oyy67mdo","day":"Martes","time":"12:00","title":"Entrevista Marta Soler"},{"id":"id-mp27aa7l-sy7uodhw","day":"Miercoles","time":"09:30","title":"Sourcing dermatologia"},{"id":"id-mp27aa7l-p7s0pkt4","day":"Jueves","time":"16:00","title":"Revision pipeline equipo"},{"id":"id-mp27aa7l-bojpu9jp","day":"Viernes","time":"11:00","title":"Informes clientes"}],"routine":[{"id":"id-mp27aa7l-dwfbwypk","day":"Lunes","slot":"09:30 - 11:30","activity":"Comercial y clientes dormidos"},{"id":"id-mp27aa7l-u709nty6","day":"Martes","slot":"10:00 - 12:00","activity":"Busqueda medica activa"},{"id":"id-mp27aa7l-u8e7e1c1","day":"Miercoles","slot":"16:00 - 17:00","activity":"Seguimientos candidatos"},{"id":"id-mp27aa7l-19dvx7cm","day":"Viernes","slot":"12:00 - 13:00","activity":"Reporting semanal"}],"commercial":[{"id":"id-mp27aa7l-cc1dsqdq","channel":"LinkedIn","title":"Post busqueda dermatologia","status":"Pendiente","owner":"Santi"},{"id":"id-mp27aa7l-e1hx4fvj","channel":"Email","title":"Campana clinicas privadas","status":"En curso","owner":"Alba"}],"placements":[],"goals":[{"id":"id-mp27aa7l-e510liym","consultant":"Santi","role":"Manager","target":40000,"tiers":"9% 40000-49999 | 14% 50000-59999 | 18% +60000"},{"id":"id-mp27aa7l-lx165wg2","consultant":"Alba","role":"Manager","target":40000,"tiers":"9% 40000-49999 | 14% 50000-59999 | 18% +60000"},{"id":"id-mp27aa7l-qkvbza88","consultant":"Paula","role":"Senior","target":37500,"tiers":"9% 37500-46874 | 14% 46875-56249 | 18% +56250"},{"id":"id-mp27aa7l-2l77jobm","consultant":"Corina","role":"Consultor","target":30000,"tiers":"9% 30000-37499 | 14% 37500-44999 | 18% +45000"}],"pomodoro":{"minutes":25,"running":false,"remaining":1500,"mode":"Busqueda","activities":[{"id":"id-mp27aa7l-ob4uqndu","name":"Busqueda","minutes":50},{"id":"id-mp27aa7l-osaq489r","name":"Entrevistas","minutes":30},{"id":"id-mp27aa7l-vcympsvg","name":"Comercial","minutes":45},{"id":"id-mp27aa7l-zhjpdbei","name":"Informes","minutes":40},{"id":"id-mp27aa7l-kcmtfe5c","name":"Recreo","minutes":10}]},"reportProjects":[{"id":"id-mp27aa7l-b06ykttd","client":"Clinica Norte","name":"Dermatologia Barcelona","candidate":"Dra. Marta Soler","cv":"CV con experiencia hospitalaria y privada.","notes":"Muy buen trato paciente, busca parcial.","output":""}],"fichajes":[{"id":"1778579710914","date":"2026-05-12","entrada":"2026-05-12T09:55:10.914Z","salida":"2026-05-12T09:55:16.378Z","notas":""}],"notas":[{"id":"id-mp29k7sp-1rqond6l","title":"aksisakask","content":"shajjdkad","color":"#FEF9C3"},{"id":"id-mp29k7sp-2k1mtaf5","title":"Nota 2","content":"","color":"#DCFCE7"},{"id":"id-mp29k7sp-q4vkrl8r","title":"Nota 3","content":"","color":"#EFF6FF"},{"id":"id-mp29k7sp-abmg6v5e","title":"Nota 4","content":"","color":"#FEE2E2"}],"forecast":[],"dashWidgets":["stats","urgentes","candidatos","jobs","placements","tasks"]};;
 
 const storageKey = "ep-hub-v14";
+const initialDataVersion = "clientes-jobs-base-2026-05-17";
 const legacyStorageKeys = ["expansion-recruiter-hub-v2-clean", "expansion-recruiter-hub-v1"];
 let state = loadState();
 let currentView = "dashboard";
@@ -1430,11 +1579,12 @@ function saveState() {
     fbDb.collection('app_state').doc('shared').set({
       clients: state.clients||[], jobs: state.jobs||[], candidates: state.candidates||[],
       forecast: state.forecast||[], placements: state.placements||[], invoices: state.invoices||[],
-      commercial: state.commercial||[],
+      commercial: state.commercial||[], goals: state.goals||[], reportProjects: state.reportProjects||[],
+      initialDataVersion: state.initialDataVersion || initialDataVersion,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser ? currentUser.name : ''
     }, {merge:true});
     fbDb.collection('user_data').doc(currentUser.uid).set({
-      tasks: state.tasks||[], events: state.events||[], routine: state.routine||{},
+      tasks: state.tasks||[], events: state.events||[], routine: state.routine||[],
       notas: state.notas||[], fichajes: state.fichajes||[], pomodoro: state.pomodoro||{},
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, {merge:true});
@@ -4340,32 +4490,35 @@ quickAdd.addEventListener("click", () => {
   if (currentView === "goals") editGoal();
 });
 
-document.querySelector("#reset-demo").addEventListener("click", () => {
-  localStorage.setItem(`${storageKey}-backup-${Date.now()}`, JSON.stringify(state));
-  localStorage.removeItem(storageKey);
-  state = clone(seed);
-  saveState();
-  render();
-  showToast("Demo reiniciada");
-});
+const resetDemoButton = document.querySelector("#reset-demo");
+if (resetDemoButton) {
+  resetDemoButton.addEventListener("click", () => {
+    var ok = confirm("Esto vacia clientes, candidatos, jobs, tareas, calendario, rutina, facturacion, informes y notas. Se guarda una copia local de seguridad antes de borrar. ¿Quieres continuar?");
+    if (!ok) return;
+    localStorage.setItem(`${storageKey}-backup-${Date.now()}`, JSON.stringify(state));
+    state = createEmptyState();
+    saveState();
+    render();
+    showToast("Datos vaciados. Copia de seguridad guardada.");
+  });
+}
 
 
-// Pre-populate with real data if localStorage is empty or old key
+// Keep old local backups available, but do not auto-restore demo data into the clean app.
 (function() {
   var KEY = "expansion-recruiter-hub-v3";
   var NEW_KEY = storageKey;
-  // Migrate from old key if present
   var old = localStorage.getItem(KEY);
   var current = localStorage.getItem(NEW_KEY);
-  if (old && !current) {
+  if (old && !current && false) {
     localStorage.setItem(NEW_KEY, old);
   }
 })();
 
-// Auto-migrate from old key on first load
+// Old versions had an automatic migration. It is disabled so cleared data stays cleared.
 (function() {
   var newKey = storageKey;
-  if (!localStorage.getItem(newKey)) {
+  if (!localStorage.getItem(newKey) && false) {
     var oldKey = "expansion-recruiter-hub-v3";
     var old = localStorage.getItem(oldKey);
     if (old) {
@@ -4415,10 +4568,6 @@ function renderNotas() {
   title.textContent = "Notas";
   quickAdd.style.display = "none";
   if (!state.notas) state.notas = [];
-  while (state.notas.length < 4) {
-    var colors = ["#FEF9C3","#DCFCE7","#EFF6FF","#FEE2E2"];
-    state.notas.push({id:uid(), title:"Nota "+(state.notas.length+1), content:"", color:colors[state.notas.length%4]});
-  }
 
   var COLORS = [
     {bg:"#FEF9C3",label:"Amarillo"},{bg:"#DCFCE7",label:"Verde"},
@@ -4450,7 +4599,7 @@ function renderNotas() {
       "<p style='margin:0;color:var(--muted);font-size:13px'>"+state.notas.length+" notas &middot; Click en el t&iacute;tulo o contenido para editar</p>" +
       "<button class='primary-button' onclick='nota_add()'>+ Nueva nota</button>" +
     "</div>" +
-    "<div style='display:grid;grid-template-columns:repeat(2,1fr);gap:14px'>" + cards + "</div>";
+    "<div style='display:grid;grid-template-columns:repeat(2,1fr);gap:14px'>" + (cards || "<div class='panel' style='padding:18px;color:var(--muted)'>Sin notas todavia. Apreta + Nueva nota para crear la primera.</div>") + "</div>";
 }
 
 function nota_update(id, val) {
