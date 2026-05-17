@@ -2771,6 +2771,8 @@ function openCandidateReportPreview(candidateId, reportIdx) {
   var candidate = state.candidates.find(function(item) { return item.id === candidateId; });
   if (!candidate || !candidate.reports || !candidate.reports[reportIdx]) return;
   var report = candidate.reports[reportIdx];
+  var html = report.values ? buildCandidateReportHTML(candidate, report.values) : report.html;
+  report.html = html;
   var modal = document.createElement("div");
   modal.className = "modal show";
   modal.innerHTML =
@@ -2788,7 +2790,7 @@ function openCandidateReportPreview(candidateId, reportIdx) {
     "</div>";
   document.body.appendChild(modal);
   var iframe = modal.querySelector("iframe");
-  iframe.srcdoc = report.html;
+  iframe.srcdoc = html;
   modal.querySelectorAll("[data-close-report-preview]").forEach(function(btn) {
     btn.addEventListener("click", function() { modal.remove(); });
   });
@@ -5283,7 +5285,7 @@ function prop_view(clientId, propIdx) {
   var client = state.clients.find(function(c){return c.id===clientId;});
   if (!client || !client.proposals || !client.proposals[propIdx]) return;
   var p = client.proposals[propIdx];
-  var html = p.generatedContent || prop_generateHTML(p, client, p.propTipo || 'completa');
+  var html = prop_generateHTML(p, client, p.propTipo || 'completa');
 
   var modal = document.createElement('div');
   modal.className = 'modal show';
@@ -5401,7 +5403,7 @@ function prop_downloadWord(clientId, propIdx) {
   var client = state.clients.find(function(c){return c.id===clientId;});
   if (!client || !client.proposals || !client.proposals[propIdx]) return;
   var p = client.proposals[propIdx];
-  var html = p.generatedContent || prop_generateHTML(p, client, p.propTipo || 'completa');
+  var html = prop_generateHTML(p, client, p.propTipo || 'completa');
   // Wrap in Word-compatible HTML
   var wordHtml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
     '<head><meta charset="utf-8"><title>Propuesta '+p.clientName+'</title>' +
