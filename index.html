@@ -989,9 +989,11 @@ tr:hover td { background: #FAFBFC; }
           <h1 id="section-title">Dashboard</h1>
         </div>
         <div class="topbar-actions">
+          <span id="topbar-user-badge" style="display:inline-flex;align-items:center;gap:7px;padding:0 12px;height:34px;border-radius:8px;font-size:13px;font-weight:700;color:#fff;background:#0A1F5C"></span>
           <button id="reset-demo" class="ghost-button" type="button">Reiniciar demo</button>
           <button onclick="exportarDatos()" class="ghost-button" type="button" title="Exportar todos tus datos como backup">&#128190; Exportar datos</button>
           <button onclick="importarDatos()" class="ghost-button" type="button" style="background:#EFF6FF;border-color:#BFDBFE;color:#1B3E8A" title="Importar datos desde backup">&#128228; Importar datos</button>
+          <button onclick="doLogout()" class="ghost-button" type="button" style="color:#EF4444;border-color:#FECACA" title="Cerrar sesión">&#128274; Salir</button>
           <button id="quick-add" class="primary-button" type="button">Nuevo</button>
         </div>
       </header>
@@ -1176,11 +1178,11 @@ function onUserLoggedIn(firebaseUser) {
   if (topbar) topbar.style.display = '';
   if (sidebar) sidebar.style.display = '';
 
-  // Update topbar user indicator
-  var userIndicator = document.getElementById('topbar-user');
-  if (userIndicator) {
-    userIndicator.textContent = info.name;
-    userIndicator.style.background = info.color;
+  // Update topbar user badge
+  var userBadge = document.getElementById('topbar-user-badge');
+  if (userBadge) {
+    userBadge.textContent = '👤 ' + info.name;
+    userBadge.style.background = info.color;
   }
 
   // Load state from Firestore
@@ -1904,14 +1906,26 @@ function renderDirectoryView(key) {
   const config = getDirectoryConfig(key);
   const filter = activeFilters[key] || "Todos";
   const specialtyFilter = activeFilters.specialty || "Todas";
+  const miosFilter = activeFilters[key + '_scope'] || (key === 'candidates' ? 'Mios' : 'Todos');
   const specialties = ["Todas", ...new Set(state.candidates.map((candidate) => candidate.specialty).filter(Boolean))];
-  const items = state[key].filter((item) => matchesDirectoryFilter(key, item, filter) && (key !== "candidates" || specialtyFilter === "Todas" || item.specialty === specialtyFilter));
+  const myName = currentUser ? currentUser.name : '';
+  let items = state[key].filter((item) => matchesDirectoryFilter(key, item, filter) && (key !== "candidates" || specialtyFilter === "Todas" || item.specialty === specialtyFilter));
+  // Filtro Míos/Todos para candidatos (por owner o jobs que incluye el nombre)
+  if (key === 'candidates' && miosFilter === 'Mios') {
+    items = items.filter(function(c) {
+      return !c.owner || c.owner === myName;
+    });
+  }
   app.innerHTML = `
     <div class="directory-toolbar">
       <div class="search-wrap">
         <span>⌕</span>
         <input class="search directory-search" type="search" placeholder="${config.placeholder}" data-search="${key}" />
       </div>
+      ${key === 'candidates' ? `<div style="display:flex;gap:6px">
+        <button class="ghost-button" style="height:34px;font-size:12px;padding:0 12px;${miosFilter==='Mios'?'background:#0A1F5C;color:#fff;border-color:#0A1F5C':''}" type="button" data-scope-filter="${key}:Mios">Míos</button>
+        <button class="ghost-button" style="height:34px;font-size:12px;padding:0 12px;${miosFilter==='Todos'?'background:#0A1F5C;color:#fff;border-color:#0A1F5C':''}" type="button" data-scope-filter="${key}:Todos">Todos</button>
+      </div>` : ''}
       <div class="segmented">
         ${config.filters.map((entry) => `<button class="${entry === filter ? "active" : ""}" type="button" data-filter="${key}:${entry}">${entry}</button>`).join("")}
       </div>
@@ -2168,37 +2182,53 @@ function fc_filterCands(jobSel, candSelId) {
 
 
 function renderForecast() {
+  var isAdmin = currentUser && currentUser.role === 'admin';
+  var myName = currentUser ? currentUser.name : '';
+  var fcConsultor = window._fcConsultor || (isAdmin ? 'Todos' : myName);
+  var CONSULTORES = ["Todos","Santi","Alba","Cori","Esteve"];
+
+  function filterByConsultor(items) {
+    if (fcConsultor === 'Todos') return items;
+    return items.filter(function(f){ return f.consultor === fcConsultor; });
+  }
+
+  var consultorBtns = isAdmin ? "<div style='display:flex;gap:5px;flex-wrap:wrap;margin-bottom:0'>" +
+    CONSULTORES.map(function(c){
+      var act = fcConsultor===c;
+      return "<button type='button' onclick='window._fcConsultor=\""+c+"\";renderForecast()' style='height:28px;padding:0 10px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid "+(act?"#0A1F5C":"#CBD5E1")+";background:"+(act?"#0A1F5C":"#fff")+";color:"+(act?"#fff":"#64748B")+"'>"+c+"</button>";
+    }).join("") + "</div>" : "";
+
   if (!forecastContext.quarter) {
     var qCards = Object.entries(quarters).map(function(e) {
       var q=e[0]; var months=e[1];
-      var items = (state.forecast||[]).filter(function(f){return months.includes(f.month);});
+      var items = filterByConsultor((state.forecast||[]).filter(function(f){return months.includes(f.month);}));
       var total = items.reduce(function(s,f){return s+(parseFloat(f.amount)||0);}, 0);
       return "<button class='quarter-card' type='button' data-fc-quarter='"+q+"'><span>"+q+"</span><strong>"+money(total)+"</strong><small>"+months.join(" \u00b7 ")+" \u00b7 "+items.length+" registros</small></button>";
     }).join("");
     app.innerHTML =
-      "<div class='toolbar'><p style='margin:0;color:var(--muted)'>Forecast por trimestre.</p>" +
+      "<div class='toolbar'><div style='display:flex;flex-direction:column;gap:8px'><p style='margin:0;color:var(--muted)'>Forecast por trimestre.</p>" + consultorBtns + "</div>" +
       "<button class='primary-button' type='button' onclick='editForecast(null)'>+ Agregar forecast</button></div>" +
-      renderBillingDashboard((state.forecast||[]).map(function(f){return {consultant:f.consultor,amount:f.amount,month:f.month};})) +
+      renderBillingDashboard(filterByConsultor(state.forecast||[]).map(function(f){return {consultant:f.consultor,amount:f.amount,month:f.month};})) +
       "<div class='quarter-grid'>"+qCards+"</div>";
     return;
   }
   if (!forecastContext.month) {
     var months = quarters[forecastContext.quarter];
     var mCards = months.map(function(month) {
-      var items = (state.forecast||[]).filter(function(f){return f.month===month;});
+      var items = filterByConsultor((state.forecast||[]).filter(function(f){return f.month===month;}));
       var total = items.reduce(function(s,f){return s+(parseFloat(f.amount)||0);}, 0);
       var billed = items.filter(function(f){return f.billed;}).length;
       return "<button class='month-card' type='button' data-fc-month='"+month+"'><span>"+month+"</span><strong>"+money(total)+"</strong><small>"+billed+"/"+items.length+" facturados</small></button>";
     }).join("");
-    var qItems = (state.forecast||[]).filter(function(f){return months.includes(f.month);});
+    var qItems = filterByConsultor((state.forecast||[]).filter(function(f){return months.includes(f.month);}));
     app.innerHTML =
-      "<div class='toolbar'><button class='ghost-button' type='button' data-fc-back='quarters'>\u2190 Trimestres</button>" +
+      "<div class='toolbar'><div style='display:flex;flex-direction:column;gap:8px'><button class='ghost-button' type='button' data-fc-back='quarters'>\u2190 Trimestres</button>" + consultorBtns + "</div>" +
       "<button class='primary-button' type='button' onclick='editForecast(null)'>+ Agregar forecast</button></div>" +
       renderBillingDashboard(qItems.map(function(f){return {consultant:f.consultor,amount:f.amount,month:f.month};})) +
       "<div class='month-grid'>"+mCards+"</div>";
     return;
   }
-  var items = (state.forecast||[]).filter(function(f){return f.month===forecastContext.month;});
+  var items = filterByConsultor((state.forecast||[]).filter(function(f){return f.month===forecastContext.month;}));
   var rows = items.map(function(f) {
     var job = (f.jobId && f.jobId!=="otros") ? state.jobs.find(function(j){return j.id===f.jobId;}) : null;
     var cand = f.candId ? state.candidates.find(function(c){return c.id===f.candId;}) : null;
@@ -2305,16 +2335,35 @@ function fc_unbill(id) {
 }
 
 function renderPlacements() {
+  var isAdmin = currentUser && currentUser.role === 'admin';
+  var myName = currentUser ? currentUser.name : '';
+  var plConsultor = window._plConsultor || (isAdmin ? 'Todos' : myName);
+  var CONSULTORES = ["Todos","Santi","Alba","Cori","Esteve"];
+
+  function filterPl(items) {
+    if (plConsultor === 'Todos') return items;
+    return items.filter(function(p){ return p.consultant === plConsultor; });
+  }
+
+  var consultorBtns = isAdmin ? "<div style='display:flex;gap:5px;flex-wrap:wrap'>" +
+    CONSULTORES.map(function(c){
+      var act = plConsultor===c;
+      return "<button type='button' onclick='window._plConsultor=\""+c+"\";renderPlacements()' style='height:28px;padding:0 10px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid "+(act?"#0A1F5C":"#CBD5E1")+";background:"+(act?"#0A1F5C":"#fff")+";color:"+(act?"#fff":"#64748B")+"'>"+c+"</button>";
+    }).join("") + "</div>" : "";
+
   if (!placementContext.quarter) {
     app.innerHTML = `
       <div class="toolbar">
-        <p style="margin:0;color:var(--muted)">Elige un trimestre para ver los meses y la facturación.</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <p style="margin:0;color:var(--muted)">Elige un trimestre para ver los meses y la facturación.</p>
+          ${consultorBtns}
+        </div>
         <button class="primary-button" type="button" data-add="placements">Añadir facturación</button>
       </div>
-      ${renderBillingDashboard(state.placements)}
+      ${renderBillingDashboard(filterPl(state.placements))}
       <div class="quarter-grid">
         ${Object.entries(quarters).map(([quarter, months]) => {
-          const items = getPlacementsForMonths(months);
+          const items = filterPl(getPlacementsForMonths(months));
           const total = sumAmount(items);
           return `<button class="quarter-card" type="button" data-placement-quarter="${quarter}">
             <span>${quarter}</span>
@@ -2571,6 +2620,8 @@ function renderRow(key, row) {
 
 function renderJobs() {
   var sf = window._jobStatusFilter || "Todos";
+  var jobScope = window._jobScope || "Mios";
+  var myName = currentUser ? currentUser.name : '';
   var stages = ["Busqueda","Contactado","Entrevista","Entrevista C/C","Oferta"];
   var statuses = ["Todos","Abierto","Standby","Cancelado","Facturado"];
 
@@ -2580,8 +2631,15 @@ function renderJobs() {
     return "<button type='button' style='height:30px;padding:0 11px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;" + style + "' data-job-filter='" + s + "'>" + s + "</button>";
   }).join("");
 
+  var scopeHtml = "<div style='display:flex;gap:6px'>" +
+    "<button type='button' style='height:30px;padding:0 11px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;" + (jobScope==="Mios"?"border:1.5px solid #0A1F5C;background:#0A1F5C;color:#fff;":"border:1.5px solid #CBD5E1;background:#fff;color:#64748B;") + "' onclick='window._jobScope=\"Mios\";renderJobs()'>Míos</button>" +
+    "<button type='button' style='height:30px;padding:0 11px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;" + (jobScope==="Todos"?"border:1.5px solid #0A1F5C;background:#0A1F5C;color:#fff;":"border:1.5px solid #CBD5E1;background:#fff;color:#64748B;") + "' onclick='window._jobScope=\"Todos\";renderJobs()'>Todos</button>" +
+  "</div>";
+
   var jobs = state.jobs.filter(function(j){
-    return sf==="Todos" || (j.jobStatus||"Abierto")===sf;
+    var statusOk = sf==="Todos" || (j.jobStatus||"Abierto")===sf;
+    var scopeOk = jobScope==="Todos" || j.owner===myName;
+    return statusOk && scopeOk;
   });
 
   var cards = jobs.map(function(job){
@@ -2612,6 +2670,7 @@ function renderJobs() {
     "<div class='toolbar'>" +
       "<div style='display:flex;gap:7px;align-items:center;flex-wrap:wrap'>" +
         "<input class='search' type='search' placeholder='Buscar job...' data-search='jobs' style='width:190px'/>" +
+        scopeHtml +
         "<div style='display:flex;gap:5px;flex-wrap:wrap'>" + filterHtml + "</div>" +
       "</div>" +
       "<button class='primary-button' type='button' data-add-job>+ Nuevo job</button>" +
@@ -3225,6 +3284,10 @@ function editRecord(key, id) {
     onSave: (data) => {
       const updated = { ...record, ...data };
       if (schema.fields.some(([field, , type]) => field === "amount" && type === "number")) updated.amount = Number(updated.amount || 0);
+      // Asignar owner automático si es nuevo candidato
+      if (key === "candidates" && !updated.owner) {
+        updated.owner = currentUser ? currentUser.name : 'Santi';
+      }
       // Attach pending CV file if uploaded
       if (key === "candidates" && window._pendingCV) {
         if (!updated.files) updated.files = {};
@@ -3718,6 +3781,13 @@ document.addEventListener("click", (event) => {
   if (filterButton) {
     const [key, value] = filterButton.dataset.filter.split(":");
     activeFilters[key] = value;
+    render();
+  }
+
+  const scopeFilter = event.target.closest("[data-scope-filter]");
+  if (scopeFilter) {
+    const [key, value] = scopeFilter.dataset.scopeFilter.split(":");
+    activeFilters[key + '_scope'] = value;
     render();
   }
 
@@ -5128,6 +5198,12 @@ function renderFichaje() {
   eyebrow.textContent = "Equipo";
   title.textContent = "Fichaje";
   quickAdd.style.display = "none";
+
+  var isAdmin = currentUser && currentUser.role === 'admin';
+  var myUid = currentUser ? currentUser.uid : '';
+  var fichajeUser = window._fichajeUser || 'propio'; // 'propio' o uid de otro usuario
+  // Por ahora fichaje solo muestra los propios (guardados en user_data)
+  // Admins ven el resumen del equipo desde Métricas
 
   const today = new Date().toISOString().split("T")[0];
 
