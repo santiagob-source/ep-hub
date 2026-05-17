@@ -989,7 +989,7 @@ tr:hover td { background: #FAFBFC; }
           <h1 id="section-title">Dashboard</h1>
         </div>
         <div class="topbar-actions">
-          <span id="topbar-user-badge" style="display:inline-flex;align-items:center;gap:7px;padding:0 12px;height:34px;border-radius:8px;font-size:13px;font-weight:700;color:#fff;background:#0A1F5C"></span>
+          <span id="topbar-user-badge" style="display:none;align-items:center;gap:7px;padding:0 12px;height:34px;border-radius:8px;font-size:13px;font-weight:700;color:#fff;background:#0A1F5C"></span>
           <button id="reset-demo" class="ghost-button" type="button">Reiniciar demo</button>
           <button onclick="exportarDatos()" class="ghost-button" type="button" title="Exportar todos tus datos como backup">&#128190; Exportar datos</button>
           <button onclick="importarDatos()" class="ghost-button" type="button" style="background:#EFF6FF;border-color:#BFDBFE;color:#1B3E8A" title="Importar datos desde backup">&#128228; Importar datos</button>
@@ -1183,6 +1183,7 @@ function onUserLoggedIn(firebaseUser) {
   if (userBadge) {
     userBadge.textContent = '👤 ' + info.name;
     userBadge.style.background = info.color;
+    userBadge.style.display = 'inline-flex';
   }
 
   // Load state from Firestore
@@ -2337,18 +2338,25 @@ function fc_unbill(id) {
 function renderPlacements() {
   var isAdmin = currentUser && currentUser.role === 'admin';
   var myName = currentUser ? currentUser.name : '';
-  var plConsultor = window._plConsultor || (isAdmin ? 'Todos' : myName);
-  var CONSULTORES = ["Todos","Santi","Alba","Cori","Esteve"];
+  var plScope = window._plScope || 'Mios';
+  var plConsultor = window._plConsultor || myName;
+  var CONSULTORES = ["Santi","Alba","Cori","Esteve"];
 
   function filterPl(items) {
-    if (plConsultor === 'Todos') return items;
+    if (plScope === 'Todos' && (!isAdmin || plConsultor === 'Todos')) return items;
+    if (plScope === 'Mios') return items.filter(function(p){ return p.consultant === myName; });
     return items.filter(function(p){ return p.consultant === plConsultor; });
   }
 
-  var consultorBtns = isAdmin ? "<div style='display:flex;gap:5px;flex-wrap:wrap'>" +
-    CONSULTORES.map(function(c){
+  var scopeBtns = "<div style='display:flex;gap:6px;align-items:center'>" +
+    "<button type='button' onclick='window._plScope=\"Mios\";renderPlacements()' style='height:30px;padding:0 11px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid "+(plScope==="Mios"?"#0A1F5C":"#CBD5E1")+";background:"+(plScope==="Mios"?"#0A1F5C":"#fff")+";color:"+(plScope==="Mios"?"#fff":"#64748B")+"'>Míos</button>" +
+    "<button type='button' onclick='window._plScope=\"Todos\";window._plConsultor=\"Todos\";renderPlacements()' style='height:30px;padding:0 11px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid "+(plScope==="Todos"?"#0A1F5C":"#CBD5E1")+";background:"+(plScope==="Todos"?"#0A1F5C":"#fff")+";color:"+(plScope==="Todos"?"#fff":"#64748B")+"'>Todos</button>" +
+  "</div>";
+
+  var consultorBtns = (isAdmin && plScope === 'Todos') ? "<div style='display:flex;gap:5px;flex-wrap:wrap'>" +
+    ["Todos",...CONSULTORES].map(function(c){
       var act = plConsultor===c;
-      return "<button type='button' onclick='window._plConsultor=\""+c+"\";renderPlacements()' style='height:28px;padding:0 10px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid "+(act?"#0A1F5C":"#CBD5E1")+";background:"+(act?"#0A1F5C":"#fff")+";color:"+(act?"#fff":"#64748B")+"'>"+c+"</button>";
+      return "<button type='button' onclick='window._plConsultor=\""+c+"\";renderPlacements()' style='height:26px;padding:0 9px;border-radius:20px;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;border:1.5px solid "+(act?"#2563EB":"#CBD5E1")+";background:"+(act?"#2563EB":"#fff")+";color:"+(act?"#fff":"#64748B")+"'>"+c+"</button>";
     }).join("") + "</div>" : "";
 
   if (!placementContext.quarter) {
@@ -2356,7 +2364,7 @@ function renderPlacements() {
       <div class="toolbar">
         <div style="display:flex;flex-direction:column;gap:8px">
           <p style="margin:0;color:var(--muted)">Elige un trimestre para ver los meses y la facturación.</p>
-          ${consultorBtns}
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${scopeBtns}${consultorBtns}</div>
         </div>
         <button class="primary-button" type="button" data-add="placements">Añadir facturación</button>
       </div>
@@ -2380,13 +2388,16 @@ function renderPlacements() {
     const months = quarters[placementContext.quarter];
     app.innerHTML = `
       <div class="toolbar">
-        <button class="ghost-button" type="button" data-placement-back="quarters">← Trimestres</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="ghost-button" type="button" data-placement-back="quarters">← Trimestres</button>
+          ${scopeBtns}${consultorBtns}
+        </div>
         <button class="primary-button" type="button" data-add="placements">Añadir facturación</button>
       </div>
-      ${renderBillingDashboard(getPlacementsForMonths(months))}
+      ${renderBillingDashboard(filterPl(getPlacementsForMonths(months)))}
       <div class="month-grid">
         ${months.map((month) => {
-          const items = getPlacementsForMonths([month]);
+          const items = filterPl(getPlacementsForMonths([month]));
           const total = sumAmount(items);
           return `<button class="month-card" type="button" data-placement-month="${month}">
             <span>${month}</span>
@@ -2399,11 +2410,12 @@ function renderPlacements() {
     return;
   }
 
-  const items = getPlacementsForMonths([placementContext.month]);
+  const items = filterPl(getPlacementsForMonths([placementContext.month]));
   app.innerHTML = `
     <div class="toolbar">
-      <div style="display:flex;gap:10px;align-items:center">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <button class="ghost-button" type="button" data-placement-back="months">← Meses</button>
+        ${scopeBtns}${consultorBtns}
         <input class="search" type="search" placeholder="Buscar en ${placementContext.month}..." data-search="placements" />
       </div>
       <button class="primary-button" type="button" data-add="placements">Añadir facturación</button>
