@@ -2254,6 +2254,13 @@ function connectCandidateToSelectedJob(candidate) {
   }
 }
 
+function candidateJobOptions(selectedJobId) {
+  return getOpenJobsForCandidateSelect().map(function(job) {
+    var text = job.title + " - " + job.client;
+    return "<option value='" + htmlEscape(job.id) + "' " + (selectedJobId === job.id ? "selected" : "") + ">" + htmlEscape(text) + "</option>";
+  }).join("");
+}
+
 const quarters = {
   Q1: ["Enero", "Febrero", "Marzo"],
   Q2: ["Abril", "Mayo", "Junio"],
@@ -3744,6 +3751,10 @@ function openModal({ title, fields, values = {}, onSave }) {
 }
 
 function editRecord(key, id) {
+  if (key === "candidates") {
+    editCandidate(id);
+    return;
+  }
   if (key === "placements") {
     editBilling(id);
     return;
@@ -3790,6 +3801,66 @@ function editRecord(key, id) {
         }
       }
     },
+  });
+}
+
+function editCandidate(id) {
+  var record = state.candidates.find(function(item) { return item.id === id; }) || { id: uid(), status: "CV Recibido" };
+  var selectedJobId = getCandidateSelectedJobId(record);
+  var modal = document.createElement("div");
+  modal.className = "modal show";
+  modal.innerHTML =
+    "<div class='modal-card' style='max-width:900px'>" +
+      "<div class='panel-header'><h2 class='panel-title'>" + (id ? "Editar candidato · job automático" : "Añadir candidato · job automático") + "</h2><button class='icon-button' type='button' data-close-modal>&times;</button></div>" +
+      "<form class='panel-body form-grid' id='candidate-form'>" +
+        "<div class='field'><label>Nombre</label><input name='name' value='" + htmlEscape(record.name) + "'/></div>" +
+        "<div class='field'><label>Telefono</label><input name='phone' value='" + htmlEscape(record.phone) + "'/></div>" +
+        "<div class='field'><label>Email</label><input name='email' value='" + htmlEscape(record.email) + "'/></div>" +
+        "<div class='field'><label>Especialidad</label><input name='specialty' value='" + htmlEscape(record.specialty) + "'/></div>" +
+        "<div class='field'><label>Ubicacion</label><input name='location' value='" + htmlEscape(record.location) + "'/></div>" +
+        "<div class='field'><label>Estado</label><select name='status' onchange='modal_onStatusChange(this)'>" +
+          ["CV Recibido","CV Enviado","Llamada","Entrevista","Entrevista C/C","Oferta","Placement","Descartado","Volver a contactar"].map(function(status) {
+            return "<option " + ((record.status || "CV Recibido") === status ? "selected" : "") + ">" + status + "</option>";
+          }).join("") +
+        "</select></div>" +
+        "<div class='field full' style='border:2px solid #2563EB;background:#EFF6FF;border-radius:12px;padding:12px'>" +
+          "<label style='color:#1D4ED8;font-size:13px'>Job abierto</label>" +
+          "<select name='jobId' style='height:42px;border:2px solid #2563EB;background:#fff;font-weight:700'>" +
+            "<option value=''>Sin job asignado</option>" + candidateJobOptions(selectedJobId) +
+          "</select>" +
+          "<div style='font-size:12px;color:#1D4ED8;margin-top:6px;font-weight:600'>Al guardar, el candidato se añadirá automáticamente al pipeline del job elegido.</div>" +
+        "</div>" +
+        "<div class='field full'><label>CV</label><input name='cv' value='" + htmlEscape(record.cv) + "'/></div>" +
+        "<div class='field full'><label>LinkedIn</label><input name='linkedin' value='" + htmlEscape(record.linkedin) + "'/></div>" +
+        "<div class='field full'><label>Entrevistas</label><input name='interviews' value='" + htmlEscape(record.interviews) + "'/></div>" +
+        "<div class='field full'><label>Notas</label><textarea name='notes'>" + htmlEscape(record.notes) + "</textarea></div>" +
+        "<div class='field full contactar-fields' style='display:" + (record.status === "Volver a contactar" ? "block" : "none") + ";background:#F3E8FF;border:1.5px solid #DDD6FE;border-radius:10px;padding:12px'><label style='color:#7C3AED;font-weight:700'>&#128276; Volver a contactar — fecha y hora</label><input name='contactarFecha' type='datetime-local' value='" + htmlEscape(record.contactarFecha) + "' style='margin-top:6px;width:100%;height:36px;padding:0 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-family:inherit'/></div>" +
+        "<div class='field full contactar-fields' style='display:" + (record.status === "Volver a contactar" ? "block" : "none") + "'><label>Nota para ese contacto</label><input name='contactarNotas' value='" + htmlEscape(record.contactarNotas) + "'/></div>" +
+      "</form>" +
+      "<div class='modal-footer'><button class='ghost-button' type='button' data-close-modal>Cancelar</button><button class='primary-button' type='button' data-save-candidate>Guardar candidato</button></div>" +
+    "</div>";
+  document.body.appendChild(modal);
+  modal.querySelector("[data-save-candidate]").addEventListener("click", function() {
+    var data = Object.fromEntries(new FormData(modal.querySelector("#candidate-form")).entries());
+    var updated = Object.assign({}, record, data);
+    if (!updated.owner) updated.owner = currentUser ? currentUser.name : "Santi";
+    if (updated.jobId) {
+      var job = state.jobs.find(function(item) { return item.id === updated.jobId; });
+      if (job) updated.jobs = job.title + " - " + job.client;
+    } else {
+      updated.jobs = "";
+    }
+    var index = state.candidates.findIndex(function(item) { return item.id === record.id; });
+    if (index >= 0) state.candidates[index] = updated;
+    else state.candidates.push(updated);
+    connectCandidateToSelectedJob(updated);
+    saveState();
+    modal.remove();
+    render();
+    showToast("Candidato guardado y conectado al job");
+  });
+  modal.addEventListener("click", function(event) {
+    if (event.target.matches("[data-close-modal]") || event.target === modal) modal.remove();
   });
 }
 
@@ -4327,7 +4398,8 @@ document.addEventListener("click", (event) => {
   const edit = event.target.closest("[data-edit]");
   if (edit) {
     const [key, id] = edit.dataset.edit.split(":");
-    editRecord(key, id);
+    if (key === "candidates") editCandidate(id);
+    else editRecord(key, id);
   }
 
   const del = event.target.closest("[data-delete]");
