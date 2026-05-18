@@ -1266,29 +1266,42 @@ function loadStateFromFirestore() {
     var personal = results[1].exists ? results[1].data() : {};
     // Merge with local seed if empty
     var local = loadStateLocal();
-    if (shared.initialDataVersion !== initialDataVersion) {
+    var hasSharedData = ["clients","jobs","candidates","forecast","placements","goals"].some(function(key) {
+      return Array.isArray(shared[key]) && shared[key].length > 0;
+    });
+    if (shared.initialDataVersion !== initialDataVersion && !hasSharedData) {
       state = createStarterState();
       saveState();
       console.log('Starter data applied');
       return;
     }
+    function preferCollection(remote, fallback) {
+      if (Array.isArray(remote) && remote.length > 0) return remote;
+      if (Array.isArray(fallback) && fallback.length > 0) return fallback;
+      if (Array.isArray(remote)) return remote;
+      return fallback || [];
+    }
+    function preferObject(remote, fallback) {
+      if (remote && Object.keys(remote).length) return remote;
+      return fallback || {};
+    }
     state = {
       initialDataVersion: shared.initialDataVersion || local.initialDataVersion || initialDataVersion,
-      clients:    shared.clients    || local.clients    || [],
-      jobs:       shared.jobs       || local.jobs       || [],
-      candidates: shared.candidates || local.candidates || [],
-      forecast:   shared.forecast   || local.forecast   || [],
-      placements: shared.placements || local.placements || [],
-      invoices:   shared.invoices   || local.invoices   || [],
-      commercial: shared.commercial || local.commercial || [],
-      goals:      shared.goals      || local.goals      || [],
-      tasks:      personal.tasks    || local.tasks      || [],
-      events:     personal.events   || local.events     || [],
-      routine:    personal.routine  || local.routine    || [],
-      notas:      personal.notas    || local.notas      || [],
-      fichajes:   personal.fichajes || local.fichajes   || [],
-      pomodoro:   personal.pomodoro || local.pomodoro   || {},
-      reportProjects: shared.reportProjects || local.reportProjects || []
+      clients:    preferCollection(shared.clients, local.clients),
+      jobs:       preferCollection(shared.jobs, local.jobs),
+      candidates: preferCollection(shared.candidates, local.candidates),
+      forecast:   preferCollection(shared.forecast, local.forecast),
+      placements: preferCollection(shared.placements, local.placements),
+      invoices:   preferCollection(shared.invoices, local.invoices),
+      commercial: preferCollection(shared.commercial, local.commercial),
+      goals:      preferCollection(shared.goals, local.goals),
+      tasks:      preferCollection(personal.tasks, local.tasks),
+      events:     preferCollection(personal.events, local.events),
+      routine:    preferCollection(personal.routine, local.routine),
+      notas:      preferCollection(personal.notas, local.notas),
+      fichajes:   preferCollection(personal.fichajes, local.fichajes),
+      pomodoro:   preferObject(personal.pomodoro, local.pomodoro),
+      reportProjects: preferCollection(shared.reportProjects, local.reportProjects)
     };
     // Ensure required fields
     state.pomodoro.mode ||= 'Búsqueda';
