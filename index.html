@@ -1969,7 +1969,7 @@ const schemas = {
       ["phone", "Teléfono"],
       ["specialty", "Especialidad"],
       ["status", "Estado", "select", ["CV Recibido","CV Enviado","Llamada","Entrevista","Entrevista C/C","Oferta","Placement","Descartado","Volver a contactar"]],
-      ["jobs", "Job", "job-select"],
+      ["jobId", "Job abierto", "job-id-select"],
       ["interviews", "Entrevistas"],
     ],
     fields: [
@@ -2227,9 +2227,19 @@ function findJobByCandidateJobValue(value) {
   }) || null;
 }
 
+function getCandidateSelectedJobId(candidate) {
+  if (candidate && candidate.jobId) return candidate.jobId;
+  var job = findJobByCandidateJobValue(candidate && candidate.jobs);
+  return job ? job.id : "";
+}
+
 function connectCandidateToSelectedJob(candidate) {
-  var job = findJobByCandidateJobValue(candidate.jobs);
+  var job = candidate.jobId
+    ? (state.jobs || []).find(function(item) { return item.id === candidate.jobId; })
+    : findJobByCandidateJobValue(candidate.jobs);
   if (!job || !candidate.name) return;
+  candidate.jobId = job.id;
+  candidate.jobs = job.title + " - " + job.client;
   job.pipeline = job.pipeline || [];
   var exists = job.pipeline.some(function(item) {
     return normalize(item.name) === normalize(candidate.name) || (item.candidateId && item.candidateId === candidate.id);
@@ -3674,6 +3684,15 @@ function openModal({ title, fields, values = {}, onSave }) {
               }).join("");
               return `<div class="field full"><label>${label}</label><select name="${name}"><option value="">Sin job asignado</option>${current}${opts}</select><div style="font-size:11px;color:#64748B;margin-top:4px">Al elegir un job, el candidato se añadirá automáticamente al pipeline.</div></div>`;
             }
+            if (type === "job-id-select") {
+              const openJobs = getOpenJobsForCandidateSelect();
+              const selectedJobId = getCandidateSelectedJobId(values);
+              const opts = openJobs.map((job) => {
+                const optionText = job.title + " - " + job.client;
+                return `<option value="${job.id}" ${selectedJobId === job.id ? "selected" : ""}>${optionText}</option>`;
+              }).join("");
+              return `<div class="field full"><label>${label}</label><select name="${name}" style="border:2px solid #2563EB;background:#EFF6FF"><option value="">Sin job asignado</option>${opts}</select><div style="font-size:12px;color:#1D4ED8;margin-top:5px;font-weight:600">Selecciona un job abierto y se añadirá al pipeline automáticamente.</div></div>`;
+            }
             if (name === "cv") {
               const fileId = "cv-upload-" + Math.random().toString(36).slice(2);
               return `<div class="field full"><label>${label}</label>
@@ -3741,6 +3760,12 @@ function editRecord(key, id) {
       // Asignar owner automático si es nuevo candidato
       if (key === "candidates" && !updated.owner) {
         updated.owner = currentUser ? currentUser.name : 'Santi';
+      }
+      if (key === "candidates" && updated.jobId) {
+        var selectedJob = state.jobs.find(function(job) { return job.id === updated.jobId; });
+        if (selectedJob) {
+          updated.jobs = selectedJob.title + " - " + selectedJob.client;
+        }
       }
       // Attach pending CV file if uploaded
       if (key === "candidates" && window._pendingCV) {
