@@ -1826,6 +1826,42 @@ function calcTotals() {
   return { total, byConsultant };
 }
 
+function normalizeGoals() {
+  var defaults = [
+    { consultant: "Santi", role: "Manager", target: 40000, tiers: "9% entre 40.000 - 49.999 € | 14% entre 50.000 - 59.999 € | 18% si supera 60.000 €" },
+    { consultant: "Alba", role: "Manager", target: 40000, tiers: "9% entre 40.000 - 49.999 € | 14% entre 50.000 - 59.999 € | 18% si supera 60.000 €" },
+    { consultant: "Cori", role: "Consultor", target: 30000, tiers: "9% entre 30.000 - 37.499 € | 14% entre 37.500 - 44.999 € | 18% si supera 45.000 €" },
+    { consultant: "Esteve", role: "Consultor", target: 30000, tiers: "9% entre 30.000 - 37.499 € | 14% entre 37.500 - 44.999 € | 18% si supera 45.000 €" },
+    { consultant: "Paula", role: "Consultor", target: 30000, tiers: "9% entre 30.000 - 37.499 € | 14% entre 37.500 - 44.999 € | 18% si supera 45.000 €" }
+  ];
+  state.goals = state.goals || [];
+  defaults.forEach(function(def) {
+    var existing = state.goals.find(function(goal) { return normalize(goal.consultant) === normalize(def.consultant); });
+    if (existing) {
+      existing.role = def.role;
+      existing.target = def.target;
+      existing.tiers = def.tiers;
+    } else {
+      state.goals.push(Object.assign({ id: "goal-" + normalize(def.consultant).replace(/\s+/g, "-") }, def));
+    }
+  });
+}
+
+function calcBonusRate(current, goal) {
+  var name = normalize(goal.consultant || "");
+  var isManager = name === "santi" || name === "alba" || normalize(goal.role || "") === "manager";
+  if (isManager) {
+    if (current >= 60000) return 18;
+    if (current >= 50000) return 14;
+    if (current >= 40000) return 9;
+    return 0;
+  }
+  if (current >= 45000) return 18;
+  if (current >= 37500) return 14;
+  if (current >= 30000) return 9;
+  return 0;
+}
+
 function renderDashboard() {
   eyebrow.textContent = "Principal";
   title.textContent = "Dashboard";
@@ -2155,7 +2191,7 @@ function matchesDirectoryFilter(key, item, filter) {
 }
 
 function jobStatusColor(s){
-  if(!s||s==="Abierto") return "#22C55E";
+  if(!s||["Abierto","En proceso","Busqueda"].includes(s)) return "#22C55E";
   if(s==="Standby") return "#94A3B8";
   if(s==="Cancelado") return "#EF4444";
   if(s==="Facturado") return "#2563EB";
@@ -3082,7 +3118,7 @@ function renderJobs() {
   var jobScope = window._jobScope || "Mios";
   var myName = currentUser ? currentUser.name : '';
   var stages = ["Busqueda","Contactado","Entrevista","Entrevista C/C","Oferta"];
-  var statuses = ["Todos","Abierto","Standby","Cancelado","Facturado"];
+  var statuses = ["Todos","En proceso","Importantes","Standby","Cancelado","Facturado"];
 
   var filterHtml = statuses.map(function(s){
     var a = sf===s;
@@ -3096,7 +3132,11 @@ function renderJobs() {
   "</div>";
 
   var jobs = state.jobs.filter(function(j){
-    var statusOk = sf==="Todos" || (j.jobStatus||"Abierto")===sf;
+    var jobStatus = j.jobStatus || j.status || "En proceso";
+    var statusOk = sf==="Todos" ||
+      (sf==="En proceso" && ["En proceso","Abierto","Busqueda"].includes(jobStatus)) ||
+      (sf==="Importantes" && !!j.important) ||
+      jobStatus===sf;
     var scopeOk = jobScope==="Todos" || j.owner===myName;
     return statusOk && scopeOk;
   });
@@ -3116,8 +3156,10 @@ function renderJobs() {
         "<div><div style='display:flex;align-items:center;gap:7px;margin-bottom:3px'>" +
           "<span style='width:9px;height:9px;border-radius:50%;background:" + color + ";flex-shrink:0;display:inline-block'></span>" +
           "<h2 class='panel-title' style='margin:0'>" + job.title + "</h2></div>" +
-          "<p style='margin:0;color:var(--muted);font-size:12px'>" + job.client + " \u00b7 " + job.owner + invTxt + "</p></div>" +
+          "<p style='margin:0;color:var(--muted);font-size:12px'>" + job.client + " \u00b7 " + job.owner + invTxt + (job.important ? " \u00b7 Importante" : "") + "</p></div>" +
         "<div class='row-actions' onclick='event.stopPropagation()'>" +
+          "<button class='icon-button' title='Marcar importante' data-toggle-important-job='" + job.id + "'>" + (job.important ? "\u2605" : "\u2606") + "</button>" +
+          "<button class='icon-button' title='Copiar job' data-copy-job='" + job.id + "'>\u2398</button>" +
           "<button class='icon-button' title='Editar' data-edit-job='" + job.id + "'>\u270e</button>" +
           "<button class='icon-button' title='Eliminar' data-delete-job='" + job.id + "'>\u00d7</button>" +
         "</div></div>" +
@@ -3211,6 +3253,8 @@ function renderJobDetail(id) {
       "<div class='detail-actions'>" +
         (client ? "<button class='ghost-button' type='button' data-open-detail='client:" + client.id + "'>Ver cliente</button>" : "") +
         "<button class='ghost-button' type='button' data-edit-job='" + job.id + "'>&#9998; Editar</button>" +
+        "<button class='ghost-button' type='button' data-copy-job='" + job.id + "'>&#9112; Copiar job</button>" +
+        "<button class='ghost-button' type='button' data-toggle-important-job='" + job.id + "'>" + (job.important ? "&#9733; Importante" : "&#9734; Marcar importante") + "</button>" +
         "<button class='ghost-button' style='background:#DCFCE7;border-color:#BBF7D0;color:#166534;font-size:12px' onclick='generarEmailMati(\"" + job.id + "\")'>&#9993; Email Mati</button>" +
         "<button class='ghost-button' style='background:#EFF6FF;border-color:#BFDBFE;color:#1B3E8A;font-size:12px' onclick='generarJobDescription(\"" + job.id + "\")'>&#128221; Job Description</button>" +
       "</div>" +
@@ -3259,6 +3303,34 @@ function renderJobDetail(id) {
 function jd_status(jobId,val){
   var j=state.jobs.find(function(x){return x.id===jobId;});
   if(j){j.jobStatus=val;saveState();renderJobDetail(jobId);}
+}
+
+function toggleImportantJob(jobId) {
+  var job = state.jobs.find(function(item) { return item.id === jobId; });
+  if (!job) return;
+  job.important = !job.important;
+  saveState();
+  if (detailContext && detailContext.type === "job" && detailContext.id === jobId) renderJobDetail(jobId);
+  else renderJobs();
+  showToast(job.important ? "Job marcado como importante" : "Job quitado de importantes");
+}
+
+function copyJob(jobId) {
+  var job = state.jobs.find(function(item) { return item.id === jobId; });
+  if (!job) return;
+  var copy = Object.assign({}, clone(job), {
+    id: uid(),
+    title: "Copia de " + (job.title || "job"),
+    pipeline: [],
+    important: false,
+    jobStatus: "En proceso",
+    status: "En proceso",
+    notes: job.notes || ""
+  });
+  state.jobs.push(copy);
+  saveState();
+  editJob(copy.id);
+  showToast("Job copiado. Revisa el titulo y guarda.");
 }
 
 function jd_calc(jobId){
@@ -3532,6 +3604,7 @@ function renderCommercialBoard() {
 }
 
 function renderGoals() {
+  normalizeGoals();
   const { byConsultant } = calcTotals();
   app.innerHTML = `
     <div class="toolbar">
@@ -3544,7 +3617,8 @@ function renderGoals() {
           const current = byConsultant[goal.consultant] || 0;
           const missing = Math.max(goal.target - current, 0);
           const progress = Math.min((current / goal.target) * 100, 100);
-          const bonus = current >= goal.target * 1.5 ? 18 : current >= goal.target * 1.25 ? 14 : current >= goal.target ? 9 : 0;
+          const bonus = calcBonusRate(current, goal);
+          const bonusAmount = current * bonus / 100;
           return `
           <section class="panel">
             <div class="panel-header">
@@ -3555,7 +3629,7 @@ function renderGoals() {
               <div class="grid three">
                 <div><span>Facturado</span><strong>${money(current)}</strong></div>
                 <div><span>Objetivo</span><strong>${money(goal.target)}</strong></div>
-                <div><span>Bonus estimado</span><strong>${bonus}%</strong></div>
+                <div><span>Bonus estimado</span><strong>${bonus}% · ${money(bonusAmount)}</strong></div>
               </div>
               <div class="progress"><div style="width:${progress}%"></div></div>
               <p>Faltan ${money(missing)} para llegar al objetivo trimestral.</p>
@@ -3807,6 +3881,7 @@ function editRecord(key, id) {
 function editCandidate(id) {
   var record = state.candidates.find(function(item) { return item.id === id; }) || { id: uid(), status: "CV Recibido" };
   var selectedJobId = getCandidateSelectedJobId(record);
+  var cvFileId = "candidate-cv-" + Math.random().toString(36).slice(2);
   var modal = document.createElement("div");
   modal.className = "modal show";
   modal.innerHTML =
@@ -3830,7 +3905,10 @@ function editCandidate(id) {
           "</select>" +
           "<div style='font-size:12px;color:#1D4ED8;margin-top:6px;font-weight:600'>Al guardar, el candidato se añadirá automáticamente al pipeline del job elegido.</div>" +
         "</div>" +
-        "<div class='field full'><label>CV</label><input name='cv' value='" + htmlEscape(record.cv) + "'/></div>" +
+        "<div class='field full'><label>CV</label><div style='display:flex;align-items:center;gap:8px;flex-wrap:wrap'>" +
+          "<input name='cv' id='" + cvFileId + "-txt' value='" + htmlEscape(record.cv) + "' placeholder='Nombre del archivo o sube uno' style='flex:1'/>" +
+          "<button class='ghost-button' type='button' onclick='modal_uploadCV(\"" + cvFileId + "\")'>&#128196; Subir CV</button>" +
+        "</div><input type='file' id='" + cvFileId + "-file' accept='.pdf,.doc,.docx' style='display:none'/><div id='" + cvFileId + "-status' style='font-size:12px;color:#64748B;margin-top:6px'></div></div>" +
         "<div class='field full'><label>LinkedIn</label><input name='linkedin' value='" + htmlEscape(record.linkedin) + "'/></div>" +
         "<div class='field full'><label>Entrevistas</label><input name='interviews' value='" + htmlEscape(record.interviews) + "'/></div>" +
         "<div class='field full'><label>Notas</label><textarea name='notes'>" + htmlEscape(record.notes) + "</textarea></div>" +
@@ -3849,6 +3927,12 @@ function editCandidate(id) {
       if (job) updated.jobs = job.title + " - " + job.client;
     } else {
       updated.jobs = "";
+    }
+    if (window._pendingCV) {
+      updated.files = updated.files || {};
+      updated.files.cv = window._pendingCV;
+      updated.cv = window._pendingCV.name;
+      window._pendingCV = null;
     }
     var index = state.candidates.findIndex(function(item) { return item.id === record.id; });
     if (index >= 0) state.candidates[index] = updated;
@@ -4129,11 +4213,18 @@ function editJob(id, defaults) {
   var clientOpts = state.clients.map(function(c){
     return "<option value='"+c.name.replace(/'/g,"&#39;")+"'"+(record.client===c.name?" selected":"")+">"+c.name+"</option>";
   }).join("");
-  var ownerOpts = ["Santi","Esteve","Alba","Cori"].map(function(o){
+  var ownerNames = ["Santi","Alba","Cori","Esteve","Paula"]
+    .concat((state.goals||[]).map(function(g){ return g.consultant; }))
+    .concat((state.jobs||[]).map(function(j){ return j.owner; }))
+    .concat(currentUser ? [currentUser.name] : [])
+    .filter(Boolean);
+  ownerNames = ownerNames.filter(function(name, index, arr){ return arr.findIndex(function(item){ return normalize(item) === normalize(name); }) === index; });
+  var ownerOpts = ownerNames.map(function(o){
     return "<option"+(record.owner===o?" selected":"")+">"+o+"</option>";
   }).join("");
-  var currentStatus = record.jobStatus || record.status || "Abierto";
-  var statusOpts = ["En proceso","Abierto","Standby","Cancelado","Facturado"].map(function(s){
+  var currentStatus = record.jobStatus || record.status || "En proceso";
+  if (currentStatus === "Abierto" || currentStatus === "Busqueda") currentStatus = "En proceso";
+  var statusOpts = ["En proceso","Standby","Cancelado","Facturado"].map(function(s){
     return "<option"+(currentStatus===s?" selected":"")+">"+s+"</option>";
   }).join("");
 
@@ -4148,6 +4239,7 @@ function editJob(id, defaults) {
         "<div class='field'><label>Cliente</label><select name='client'><option value=''>-- Seleccionar --</option>"+clientOpts+"</select></div>" +
         "<div class='field'><label>Responsable</label><select name='owner'>"+ownerOpts+"</select></div>" +
         "<div class='field'><label>Estado</label><select name='status'>"+statusOpts+"</select></div>" +
+        "<div class='field'><label>Importante</label><select name='important'><option value=''"+(!record.important?" selected":"")+">No</option><option value='true'"+(record.important?" selected":"")+">Si</option></select></div>" +
         "<div class='field'><label>Fee %</label><input name='feePercent' type='number' value='"+(record.feePercent||"")+"' placeholder='16'/></div>" +
         "<div class='field full'><label>Notas</label><textarea name='notes' style='width:100%;min-height:60px;padding:8px;border:1.5px solid #CBD5E1;border-radius:8px;font-family:inherit;resize:vertical'>"+(record.notes||"")+"</textarea></div>" +
       "</form>" +
@@ -4164,7 +4256,8 @@ function editJob(id, defaults) {
       fee: data.feePercent && record.salaryAgreed ? Math.round(parseFloat(data.feePercent)/100*parseFloat(record.salaryAgreed)) : record.fee||0,
       feePercent: parseFloat(data.feePercent)||record.feePercent||0,
       pipeline: record.pipeline||[],
-      jobStatus: data.status || record.jobStatus || "Abierto"
+      important: data.important === "true",
+      jobStatus: data.status || record.jobStatus || "En proceso"
     });
     var idx = state.jobs.findIndex(function(j){return j.id===id;});
     if (idx>=0) state.jobs[idx]=updated; else state.jobs.push(updated);
@@ -4414,6 +4507,18 @@ document.addEventListener("click", (event) => {
   if (event.target.closest("[data-add-job]")) editJob();
   const addJobForClient = event.target.closest("[data-add-job-for-client]");
   if (addJobForClient) editJob(undefined, { client: addJobForClient.dataset.addJobForClient, status: "Busqueda", owner: state.currentUser, fee: 0 });
+  const toggleImportantJobButton = event.target.closest("[data-toggle-important-job]");
+  if (toggleImportantJobButton) {
+    event.stopPropagation();
+    toggleImportantJob(toggleImportantJobButton.dataset.toggleImportantJob);
+    return;
+  }
+  const copyJobButton = event.target.closest("[data-copy-job]");
+  if (copyJobButton) {
+    event.stopPropagation();
+    copyJob(copyJobButton.dataset.copyJob);
+    return;
+  }
   const editJobButton = event.target.closest("[data-edit-job]");
   if (editJobButton) editJob(editJobButton.dataset.editJob);
   const deleteJobButton = event.target.closest("[data-delete-job]");
