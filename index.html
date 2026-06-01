@@ -1275,9 +1275,16 @@ function loadStateFromFirestore() {
       console.log('Starter data applied');
       return;
     }
+    function collectionScore(items) {
+      if (!Array.isArray(items)) return 0;
+      return items.length + items.reduce(function(sum, item) {
+        return sum + (Array.isArray(item.pipeline) ? item.pipeline.length : 0);
+      }, 0);
+    }
     function preferCollection(remote, fallback) {
-      if (Array.isArray(remote) && remote.length > 0) return remote;
-      if (Array.isArray(fallback) && fallback.length > 0) return fallback;
+      var remoteScore = collectionScore(remote);
+      var fallbackScore = collectionScore(fallback);
+      if (fallbackScore > remoteScore) return fallback;
       if (Array.isArray(remote)) return remote;
       return fallback || [];
     }

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rescate de datos - Expansion People Recruiter</title>
+  <style>
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef4fb;color:#17223b}
+    main{max-width:1100px;margin:0 auto;padding:32px}
+    h1{margin:0 0 8px;font-size:34px;color:#071b67}
+    p{line-height:1.45;color:#52627a}
+    .panel{background:#fff;border:1px solid #d7e2ef;border-radius:14px;padding:18px;margin:18px 0;box-shadow:0 10px 25px rgba(15,35,70,.08)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+    .card{border:1px solid #d7e2ef;border-left:5px solid #2f6df6;border-radius:12px;padding:14px;background:#fbfdff}
+    .card h3{margin:0 0 8px;font-size:16px;color:#071b67}
+    .meta{font-size:13px;color:#64748b;margin:3px 0}
+    .counts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}
+    .count{background:#eef4fb;border-radius:9px;padding:8px;font-size:13px}
+    button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer;margin:4px;background:#071b67;color:#fff}
+    button.secondary{background:#fff;color:#071b67;border:1px solid #cbd7e7}
+    .warn{background:#fff7ed;border-color:#fed7aa;color:#7c2d12}
+    .ok{background:#ecfdf5;border-color:#bbf7d0;color:#14532d}
+    code{background:#edf2f7;padding:2px 5px;border-radius:5px}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Rescate de datos</h1>
+  <p>Esta pagina solo lee copias guardadas en este navegador para el mismo dominio de la app. No borra nada sola.</p>
+
+  <section class="panel warn">
+    <strong>Importante:</strong> si ves una copia con mas candidatos, jobs o pipeline que la app actual, primero pulsa <strong>Descargar JSON</strong>. Despues puedes restaurarla.
+  </section>
+
+  <section class="panel">
+    <button onclick="scan()">Buscar copias locales</button>
+    <button class="secondary" onclick="location.href='index.html'">Volver a la app</button>
+    <div id="summary"></div>
+  </section>
+
+  <section class="grid" id="results"></section>
+</main>
+
+<script>
+const MAIN_KEY = "ep-hub-v14";
+const interesting = ["ep-hub", "expansion", "recruiter"];
+
+function parseState(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed.state && typeof parsed.state === "object" ? parsed.state : parsed;
+  } catch(e) {}
+  return null;
+}
+
+function countPipeline(jobs) {
+  return (jobs || []).reduce((sum, job) => sum + ((job.pipeline || []).length), 0);
+}
+
+function score(state) {
+  if (!state) return 0;
+  return (state.clients || []).length +
+    (state.jobs || []).length +
+    countPipeline(state.jobs || []) +
+    (state.candidates || []).length +
+    (state.forecast || []).length +
+    (state.placements || []).length +
+    (state.tasks || []).length +
+    (state.events || []).length +
+    (state.routine || []).length;
+}
+
+function infoFor(key) {
+  const raw = localStorage.getItem(key);
+  const state = parseState(raw);
+  if (!state) return null;
+  return {
+    key,
+    raw,
+    state,
+    score: score(state),
+    clients: (state.clients || []).length,
+    jobs: (state.jobs || []).length,
+    pipeline: countPipeline(state.jobs || []),
+    candidates: (state.candidates || []).length,
+    forecast: (state.forecast || []).length,
+    placements: (state.placements || []).length,
+    tasks: (state.tasks || []).length,
+    events: (state.events || []).length,
+    routine: (state.routine || []).length
+  };
+}
+
+function download(key) {
+  const item = infoFor(key);
+  if (!item) return alert("No pude leer esa copia.");
+  const blob = new Blob([JSON.stringify(item.state, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "backup-" + key.replace(/[^a-z0-9_-]/gi, "-") + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function restore(key) {
+  const item = infoFor(key);
+  if (!item) return alert("No pude leer esa copia.");
+  const ok = confirm("Esto pondra esta copia como datos locales principales. Antes descarga el JSON por seguridad. Continuar?");
+  if (!ok) return;
+  localStorage.setItem(MAIN_KEY + "-backup-before-restore-" + Date.now(), localStorage.getItem(MAIN_KEY) || "");
+  localStorage.setItem(MAIN_KEY, JSON.stringify(item.state));
+  alert("Copia restaurada localmente. Ahora abre la app. Si se ve bien, haz un pequeno cambio y guardalo para sincronizar.");
+}
+
+function scan() {
+  const keys = Object.keys(localStorage).filter(k => interesting.some(part => k.toLowerCase().includes(part)));
+  const items = keys.map(infoFor).filter(Boolean).sort((a,b) => b.score - a.score);
+  const results = document.getElementById("results");
+  const summary = document.getElementById("summary");
+  summary.innerHTML = items.length
+    ? `<p class="ok panel">Encontradas ${items.length} copias posibles. La primera suele ser la mas completa.</p>`
+    : `<p class="warn panel">No encontre copias locales con datos de la app en este dominio.</p>`;
+  results.innerHTML = items.map(item => `
+    <article class="card">
+      <h3>${item.key}</h3>
+      <div class="meta">Puntuacion de datos: <strong>${item.score}</strong></div>
+      <div class="counts">
+        <div class="count">Clientes: <strong>${item.clients}</strong></div>
+        <div class="count">Jobs: <strong>${item.jobs}</strong></div>
+        <div class="count">Pipeline: <strong>${item.pipeline}</strong></div>
+        <div class="count">Candidatos: <strong>${item.candidates}</strong></div>
+        <div class="count">Forecast: <strong>${item.forecast}</strong></div>
+        <div class="count">Facturacion: <strong>${item.placements}</strong></div>
+        <div class="count">Tareas: <strong>${item.tasks}</strong></div>
+        <div class="count">Calendario: <strong>${item.events}</strong></div>
+      </div>
+      <button onclick="download('${item.key.replace(/'/g, "\\'")}')">Descargar JSON</button>
+      <button class="secondary" onclick="restore('${item.key.replace(/'/g, "\\'")}')">Restaurar esta copia</button>
+    </article>
+  `).join("");
+}
+
+scan();
+</script>
+</body>
+</html>
