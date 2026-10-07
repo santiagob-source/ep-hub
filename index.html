@@ -236,6 +236,24 @@ h1 {
 }
 .ghost-button:hover { background: var(--soft); border-color: var(--blue); }
 
+.whatsapp-button {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1.5px solid #25D366;
+  background: #fff;
+  color: #128C4A;
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all .15s;
+}
+.whatsapp-button:hover { background: #ECFDF3; border-color: #128C4A; }
+
 .icon-button {
   width: 38px;
   justify-content: center;
@@ -2048,6 +2066,7 @@ function renderDirectoryCard(key, item, config) {
       </dl>
       <p>${config.foot(item)}</p>
       <div class="directory-actions">
+        ${key === "candidates" && item.phone ? whatsappButton(item.phone, "WhatsApp") : ""}
         <button class="ghost-button" type="button" data-edit="${key}:${item.id}">Editar</button>
         <button class="icon-button" type="button" title="Eliminar" data-delete="${key}:${item.id}">×</button>
       </div>
@@ -2475,6 +2494,29 @@ function normalize(value) {
   return String(value || "").toLowerCase().trim();
 }
 
+function whatsappPhone(phone) {
+  var raw = String(phone || "").trim();
+  if (!raw) return "";
+  var digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  // Para números españoles guardados sin prefijo internacional.
+  if (!raw.startsWith("+") && !raw.startsWith("00") && /^\d{9}$/.test(digits)) {
+    digits = "34" + digits;
+  }
+  return digits;
+}
+
+function whatsappUrl(phone) {
+  var digits = whatsappPhone(phone);
+  return digits ? "https://wa.me/" + digits : "";
+}
+
+function whatsappButton(phone, label) {
+  var url = whatsappUrl(phone);
+  if (!url) return "";
+  return `<a class="whatsapp-button" href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Abrir WhatsApp">&#128172; ${label || "WhatsApp"}</a>`;
+}
+
 function renderClientDetail(id) {
   const client = state.clients.find((item) => item.id === id);
   if (!client) {
@@ -2555,6 +2597,7 @@ function renderCandidateDetail(id) {
         </div>
       </div>
       <div class="detail-actions">
+        ${candidate.phone ? whatsappButton(candidate.phone, "WhatsApp") : ""}
         <button class="ghost-button" type="button" data-edit="candidates:${candidate.id}">Editar candidato</button>
       </div>
     </section>
