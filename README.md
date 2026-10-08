@@ -57,3 +57,7 @@ node tests/browser.cjs
 Las pruebas de Node no requieren dependencias adicionales. Las de navegador requieren Playwright y Chromium (disponibles en el entorno de desarrollo usado). Usan respuestas simuladas de OpenAI, almacenamiento local de prueba y Firebase bloqueado; no necesitan credenciales ni escriben en Firebase de producción. Cubren CRUD por entidad, campos preservados, relaciones, confirmación, cancelación, revisiones obsoletas, JSON/HTML, facturación/reversión, propuestas, formularios y todas las vistas del Hub.
 
 La autenticación y sincronización con Firebase real y la llamada a OpenAI con la clave de producción se validan después del despliegue con una cuenta de prueba autorizada.
+
+### Gmail personal y formato de mensajes
+
+El Agente EP admite conexión personal de Gmail, búsqueda, lectura, creación de borradores y envío de borradores con confirmación. La configuración y sus límites están en [docs/gmail.md](docs/gmail.md). Sin configuración OAuth, el Hub y sus acciones siguen funcionando; Gmail muestra qué falta configurar. `OPENAI_API_KEY` conserva su nombre. Los mensajes del agente muestran `**negrita**` como texto en negrita y escapan HTML recibido.

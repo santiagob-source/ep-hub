@@ -591,9 +591,25 @@
         def,
         env.adapters?.[def.name] || {
           check: (a) => check(a, def.name),
-          execute: implementations[def.name],
+          execute:
+            implementations[def.name] ||
+            (() => {
+              throw Error(
+                "Conectá Gmail desde la app para usar esta herramienta.",
+              );
+            }),
         },
       );
+    const staged = new WeakMap();
+    async function stage(plan) {
+      const value = await registry
+        .get(plan.name)
+        .adapter.stage?.(clone(plan.args));
+      if (value) staged.set(plan, value);
+    }
+    function review(plan) {
+      return staged.get(plan)?.review || plan.review;
+    }
     function prepare(call) {
       const entry = registry.get(call.name);
       if (!entry) throw Error("Herramienta no disponible: " + call.name);
@@ -652,7 +668,10 @@
       }
       const entry = registry.get(plan.name);
       entry.adapter.check?.(plan.args);
-      const result = await entry.adapter.execute(clone(plan.args));
+      const result = await entry.adapter.execute(
+        clone(plan.args),
+        staged.get(plan),
+      );
       if (plan.effect !== "read") {
         const grant = approvals.get(token);
         grant.snapshot = snapshot();
@@ -661,7 +680,16 @@
       }
       return result;
     }
-    return { prepare, execute, approval, snapshot, register, redact };
+    return {
+      prepare,
+      stage,
+      review,
+      execute,
+      approval,
+      snapshot,
+      register,
+      redact,
+    };
   }
   return { create, validate, redact };
 });

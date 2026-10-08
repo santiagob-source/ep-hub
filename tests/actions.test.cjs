@@ -4,7 +4,7 @@ const catalog = require("../public/agent/catalog");
 const Hub = require("../public/agent/hub-actions");
 const Engine = require("../public/agent/engine");
 const Runtime = require("../public/agent/runtime");
-function setup() {
+function setup(adapters) {
   let next = 0,
     saves = 0;
   const state = Object.fromEntries(
@@ -33,6 +33,7 @@ function setup() {
     { get: (o, k) => o[k] || (() => {}) },
   );
   const engine = Engine.create({
+    adapters,
     hub,
     getState: () => state,
     normalize: Hub.norm,
@@ -524,4 +525,39 @@ test("task links resolve partial client names while short unrelated names never 
       }),
     /No encontré/,
   );
+});
+
+test("external staging shows real mailbox preview and never grants write approval", async () => {
+  let sent = 0;
+  const { engine } = setup({
+    gmail_send_draft: {
+      stage: async () => ({
+        capability: "private-token",
+        review: {
+          title: "Enviar a Eva",
+          arguments: { to: "eva@example.com", body: "Hola" },
+          effects: "Enviar",
+        },
+      }),
+      execute: async (args, context) => {
+        assert.equal(context.capability, "private-token");
+        sent++;
+        return { ok: true };
+      },
+    },
+  });
+  const plan = engine.prepare({
+    name: "gmail_send_draft",
+    call_id: "mail-1",
+    arguments: { draft_id: "draft-1" },
+  });
+  await engine.stage(plan);
+  assert.equal(engine.review(plan).arguments.to, "eva@example.com");
+  await assert.rejects(engine.execute(plan), /Confirmación/);
+  assert.equal(sent, 0);
+  const approval = engine.approval([plan]);
+  await engine.execute(plan, approval);
+  assert.equal(sent, 1);
+  await assert.rejects(engine.execute(plan, approval), /Confirmación/);
+  assert.equal(sent, 1);
 });

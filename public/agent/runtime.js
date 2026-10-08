@@ -101,7 +101,9 @@
         try {
           if (ids.has(call.call_id)) throw Error("Llamada duplicada");
           ids.add(call.call_id);
-          plans.push(env.engine.prepare(call));
+          const plan = env.engine.prepare(call);
+          await env.engine.stage?.(plan);
+          plans.push(plan);
         } catch (e) {
           outputs.push({
             call_id: call.call_id,
@@ -125,7 +127,9 @@
         };
         env.review(
           id,
-          plans.filter((p) => p.effect !== "read").map((p) => p.review),
+          plans
+            .filter((p) => p.effect !== "read")
+            .map((p) => env.engine.review?.(p) || p.review),
         );
         controls();
         return;
@@ -183,13 +187,13 @@
         try {
           for (const plan of current.plans) {
             try {
-              plans.push(
-                env.engine.prepare({
-                  call_id: plan.call_id,
-                  name: plan.name,
-                  arguments: JSON.stringify(plan.args),
-                }),
-              );
+              const refreshed = env.engine.prepare({
+                call_id: plan.call_id,
+                name: plan.name,
+                arguments: JSON.stringify(plan.args),
+              });
+              await env.engine.stage?.(refreshed);
+              plans.push(refreshed);
             } catch (e) {
               outputs.push({
                 call_id: plan.call_id,
@@ -208,7 +212,9 @@
             };
             env.review(
               pending.id,
-              plans.filter((p) => p.effect !== "read").map((p) => p.review),
+              plans
+                .filter((p) => p.effect !== "read")
+                .map((p) => env.engine.review?.(p) || p.review),
             );
           } else
             await handle(

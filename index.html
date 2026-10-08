@@ -1047,6 +1047,7 @@ tr:hover td { background: #FAFBFC; }
     <button id="agent-launcher" class="agent-launcher" type="button" aria-label="Abrir Agente EP">✨ Agente EP</button>
     <section id="agent-panel" class="agent-panel" aria-label="Agente EP">
       <div class="agent-head"><div><strong>✨ Agente EP</strong><small>Busca, prepara y ejecuta acciones en tu Hub</small></div><button id="agent-close" class="agent-close" type="button">&times;</button></div>
+      <div style="padding:8px 14px;border-bottom:1px solid #D6E1EE"><button id="agent-gmail" type="button">Conectar Gmail</button></div>
       <div id="agent-messages" class="agent-messages"></div>
       <div class="agent-composer">
         <textarea id="agent-input" placeholder="Ej: Buscá psiquiatras en Barcelona · Creá un job de anestesia para Juaneda · Recordame llamar a María el viernes"></textarea>
@@ -1054,6 +1055,8 @@ tr:hover td { background: #FAFBFC; }
       </div>
     </section>
 
+    <script src="/public/agent/message-format.js"></script>
+    <script src="/public/agent/gmail.js"></script>
     <script src="/public/agent/catalog.js"></script>
     <script src="/public/agent/hub-actions.js"></script>
     <script src="/public/agent/engine.js"></script>
@@ -5383,10 +5386,12 @@ function agentSafe(value){
 function agentAddMessage(role,text,html){
   const box=document.getElementById("agent-messages"); if(!box)return;
   const el=document.createElement("div"); el.className="agent-msg "+role;
-  if(html)el.innerHTML=html;else el.textContent=text||"";
+  if(html)el.innerHTML=html;else if(role==='assistant')el.innerHTML=EPAgentMessageFormat.render(text);else el.textContent=text||"";
   box.appendChild(el);box.scrollTop=box.scrollHeight;
 }
+const agentGmail=EPAgentGmail.create({user:()=>fbAuth?.currentUser,changed:info=>{const b=document.getElementById("agent-gmail");if(b){b.textContent=info.connected?"Gmail: "+info.email:"Conectar Gmail";b.title=info.connected?"Clic para desconectar esta cuenta":"Conectar tu cuenta de Google";}}});
 const agentEngine=EPAgentEngine.create({
+  adapters:agentGmail.adapters,
   hub:hubActions,getState:()=>state,normalize,save:saveState,refresh:render,
   documentText:a=>document.querySelector(a.kind==='job_description'?'#jd-txt':a.kind==='job_email'?'#email-mati-txt':'#em-txt-'+a.id)?.value||'',
   functions:{jd_remove,jd_drop,jd_label,jd_month,jd_clearMonth,fc_bill,fc_unbill,
@@ -5397,7 +5402,7 @@ const agentEngine=EPAgentEngine.create({
 });
 const agentRuntime=EPAgentRuntime.create({
   engine:agentEngine,fetch:(...args)=>fetch(...args),message:agentAddMessage,
-  context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser}),
+  context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser,gmail:agentGmail.context()}),
   setBusy:value=>{const button=document.getElementById("agent-send");if(button)button.disabled=value;},
   finishReview:()=>document.querySelectorAll('.agent-approval-buttons button').forEach(b=>b.disabled=true),
   review:(id,reviews)=>{
@@ -5421,7 +5426,8 @@ async function agentSend(){
 }
 function initAgent(){
   const launcher=document.getElementById('agent-launcher'),panel=document.getElementById('agent-panel');if(!launcher||!panel)return;
-  launcher.addEventListener('click',()=>{panel.classList.toggle('open');if(panel.classList.contains('open')){if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Decime qué querés hacer en el Hub. Puedo consultar, crear, editar, vincular y eliminar registros; los cambios siempre requieren tu confirmación.');document.getElementById('agent-input').focus();}});
+  document.getElementById('agent-gmail').addEventListener('click',async()=>{try{const info=await agentGmail.status();if(info.connected){if(confirm('¿Desconectar '+info.email+' de este navegador?'))await agentGmail.disconnect();}else await agentGmail.connect();}catch(e){agentAddMessage('system',e.message);}});
+  launcher.addEventListener('click',()=>{agentGmail.status().catch(()=>{});panel.classList.toggle('open');if(panel.classList.contains('open')){if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Decime qué querés hacer en el Hub. Puedo consultar, crear, editar, vincular y eliminar registros; los cambios siempre requieren tu confirmación.');document.getElementById('agent-input').focus();}});
   document.getElementById('agent-close').addEventListener('click',()=>panel.classList.remove('open'));
   document.getElementById('agent-send').addEventListener('click',agentSend);
   document.getElementById('agent-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();agentSend();}});

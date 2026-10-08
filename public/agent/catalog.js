@@ -501,6 +501,52 @@
     { candidate_id: str, message: str },
     ["candidate_id"],
   );
+  add(
+    "gmail_status",
+    "Comprueba si el usuario conectó su propia cuenta de Gmail.",
+    {},
+    [],
+  );
+  add(
+    "gmail_search",
+    "Busca correos usando consultas Gmail (from:, subject:, newer_than:, etc.). No marca como leído.",
+    {
+      query: str,
+      limit: { type: "integer", minimum: 1, maximum: 20 },
+      page_token: str,
+    },
+    ["query"],
+  );
+  add(
+    "gmail_read",
+    "Lee un correo sin cambiar sus etiquetas ni marcarlo como leído.",
+    { message_id: str },
+    ["message_id"],
+  );
+  add(
+    "gmail_get_draft",
+    "Lee un borrador existente de Gmail.",
+    { draft_id: str },
+    ["draft_id"],
+  );
+  add(
+    "gmail_create_draft",
+    "Crea un borrador después de confirmación. No envía correo.",
+    {
+      to: { type: "array", items: str, minItems: 1, maxItems: 20 },
+      subject: str,
+      body: str,
+    },
+    ["to", "subject", "body"],
+    "write",
+  );
+  add(
+    "gmail_send_draft",
+    "Envía un borrador existente después de mostrar su contenido y obtener confirmación. No reintentar automáticamente.",
+    { draft_id: str },
+    ["draft_id"],
+    "write",
+  );
   function effect(def, args) {
     return def.effect === "dynamic"
       ? ["upload", "remove", "upload_signed", "attach_proposal"].includes(

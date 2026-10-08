@@ -312,6 +312,16 @@ const handler = require("../api/agent");
     await page.locator("#agent-input").fill("Hola");
     await page.locator("#agent-send").click();
     await page.getByText(/respuesta no JSON \(HTTP 404\)/).waitFor();
+    await page.evaluate(() =>
+      agentAddMessage(
+        "assistant",
+        "Hecho: **Leonardo** · **Nota:** <script>alert(1)</script>",
+      ),
+    );
+    const formatted = page.locator(".agent-msg.assistant").last();
+    assert.equal(await formatted.locator("strong").count(), 2);
+    assert.equal(await formatted.locator("script").count(), 0);
+    assert.ok(!(await formatted.innerText()).includes("**"));
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",
