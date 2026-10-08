@@ -984,6 +984,32 @@ tr:hover td { background: #FAFBFC; }
   .search-wrap { max-width: none; }
   .directory-actions { opacity: 1; }
 }
+
+
+/* ── AGENTE EP ── */
+.agent-launcher{position:fixed;right:24px;bottom:24px;z-index:9000;border:0;border-radius:999px;background:#0A1F5C;color:#fff;padding:13px 18px;font:800 13px 'Plus Jakarta Sans',sans-serif;box-shadow:0 12px 32px rgba(10,31,92,.28);cursor:pointer;display:flex;gap:8px;align-items:center}
+.agent-launcher:hover{transform:translateY(-1px)}
+.agent-panel{position:fixed;right:24px;bottom:82px;z-index:9001;width:min(430px,calc(100vw - 32px));height:min(650px,calc(100vh - 120px));background:#fff;border:1px solid #D6E1EE;border-radius:18px;box-shadow:0 22px 70px rgba(15,23,42,.22);display:none;flex-direction:column;overflow:hidden}
+.agent-panel.open{display:flex}
+.agent-head{padding:15px 16px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#F8FBFF,#EEF5FF)}
+.agent-head strong{color:#0A1F5C;font-size:15px}.agent-head small{display:block;color:#64748B;margin-top:2px;font-size:11px}
+.agent-close{border:0;background:transparent;font-size:22px;color:#64748B;cursor:pointer}
+.agent-messages{flex:1;overflow:auto;padding:14px;background:#F8FAFC}
+.agent-msg{max-width:88%;padding:10px 12px;border-radius:12px;margin:0 0 10px;font-size:12.5px;line-height:1.45;white-space:pre-wrap}
+.agent-msg.user{margin-left:auto;background:#0A1F5C;color:#fff;border-bottom-right-radius:4px}
+.agent-msg.assistant{background:#fff;border:1px solid #E2E8F0;color:#0F172A;border-bottom-left-radius:4px}
+.agent-msg.system{background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;max-width:100%}
+.agent-composer{padding:12px;border-top:1px solid #E2E8F0;background:#fff}
+.agent-composer textarea{width:100%;box-sizing:border-box;min-height:64px;max-height:120px;resize:vertical;border:1.5px solid #CBD5E1;border-radius:10px;padding:10px;font:500 12.5px 'Plus Jakarta Sans',sans-serif;outline:none}
+.agent-composer textarea:focus{border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,.10)}
+.agent-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}.agent-hint{font-size:10.5px;color:#94A3B8}
+.agent-send{border:0;border-radius:9px;background:#2563EB;color:white;font-weight:800;padding:9px 13px;cursor:pointer}.agent-send:disabled{opacity:.5;cursor:not-allowed}
+.agent-approval{background:#F8FAFC;border:1px solid #CBD5E1;border-radius:12px;padding:11px;margin:8px 0}
+.agent-approval-title{font-weight:800;color:#0A1F5C;margin-bottom:7px;font-size:12px}.agent-call{font-size:11.5px;padding:7px 0;border-top:1px dashed #E2E8F0}.agent-call:first-of-type{border-top:0}
+.agent-approval-buttons{display:flex;gap:8px;margin-top:10px}.agent-approve,.agent-reject{border-radius:8px;padding:8px 10px;font-size:11.5px;font-weight:800;cursor:pointer}.agent-approve{border:0;background:#166534;color:#fff}.agent-reject{border:1px solid #CBD5E1;background:#fff;color:#475569}
+.agent-result-list{display:grid;gap:7px;margin-top:8px}.agent-result-item{border:1px solid #E2E8F0;border-radius:9px;padding:8px;background:#fff}.agent-result-item strong{font-size:12px;color:#0A1F5C}.agent-result-item span{display:block;color:#64748B;font-size:11px;margin-top:2px}
+@media(max-width:700px){.agent-launcher{right:14px;bottom:14px}.agent-panel{right:10px;bottom:70px;width:calc(100vw - 20px);height:72vh}}
+
 </style>
 </head>
   <body>
@@ -1017,6 +1043,17 @@ tr:hover td { background: #FAFBFC; }
       <section id="app" class="content"></section>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <button id="agent-launcher" class="agent-launcher" type="button" aria-label="Abrir Agente EP">✨ Agente EP</button>
+    <section id="agent-panel" class="agent-panel" aria-label="Agente EP">
+      <div class="agent-head"><div><strong>✨ Agente EP</strong><small>Busca, prepara y ejecuta acciones en tu Hub</small></div><button id="agent-close" class="agent-close" type="button">&times;</button></div>
+      <div id="agent-messages" class="agent-messages"></div>
+      <div class="agent-composer">
+        <textarea id="agent-input" placeholder="Ej: Buscá psiquiatras en Barcelona · Creá un job de anestesia para Juaneda · Recordame llamar a María el viernes"></textarea>
+        <div class="agent-actions"><span class="agent-hint">Los cambios en la app siempre te pedirán confirmación.</span><button id="agent-send" class="agent-send" type="button">Enviar</button></div>
+      </div>
+    </section>
+
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -5493,6 +5530,170 @@ function renderMetricas() {
     "</div>";
 }
 
+
+
+/* =========================
+   AGENTE EP — arquitectura extensible
+   ========================= */
+const AGENT_WRITE_TOOLS = new Set(["create_candidate","create_client","create_job","link_candidate_to_job","create_task"]);
+let agentPending = null;
+let agentBusy = false;
+let agentHistory = [];
+
+function agentCompact(value){
+  return String(value||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+}
+function agentSafe(value){
+  return String(value == null ? "" : value).replace(/[&<>"']/g,function(ch){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch];});
+}
+function agentAddMessage(role,text,html){
+  const box=document.getElementById("agent-messages"); if(!box)return;
+  const el=document.createElement("div"); el.className="agent-msg "+role;
+  if(html) el.innerHTML=html; else el.textContent=text||"";
+  box.appendChild(el); box.scrollTop=box.scrollHeight;
+}
+function agentToolLabel(name,args){
+  const a=args||{};
+  if(name==="search_candidates") return `Buscar candidatos${a.query?`: ${a.query}`:""}`;
+  if(name==="create_candidate") return `Crear candidato: ${a.name||""}`;
+  if(name==="create_client") return `Crear cliente: ${a.name||""}`;
+  if(name==="create_job") return `Crear job: ${a.title||""}${a.client?` · ${a.client}`:""}`;
+  if(name==="link_candidate_to_job") return `Vincular ${a.candidate||"candidato"} a ${a.job||"job"}`;
+  if(name==="create_task") return `Crear tarea: ${a.title||""}`;
+  if(name==="generate_boolean") return `Generar booleano${a.specialty?`: ${a.specialty}`:""}`;
+  if(name==="prepare_whatsapp") return `Preparar WhatsApp para ${a.candidate||"candidato"}`;
+  return name;
+}
+function agentFindCandidateByName(name){
+  const q=agentCompact(name); if(!q)return null;
+  return state.candidates.find(c=>agentCompact(c.name)===q) || state.candidates.find(c=>agentCompact(c.name).includes(q)||q.includes(agentCompact(c.name)));
+}
+function agentFindClientByName(name){
+  const q=agentCompact(name); if(!q)return null;
+  return state.clients.find(c=>agentCompact(c.name)===q) || state.clients.find(c=>agentCompact(c.name).includes(q)||q.includes(agentCompact(c.name)));
+}
+function agentFindJobByName(name,client){
+  const q=agentCompact(name), cq=agentCompact(client);
+  return state.jobs.find(j=>(!q||agentCompact(j.title)===q) && (!cq||agentCompact(j.client)===cq)) ||
+         state.jobs.find(j=>(!q||agentCompact(j.title).includes(q)||q.includes(agentCompact(j.title))) && (!cq||agentCompact(j.client).includes(cq)));
+}
+
+const agentTools = {
+  search_candidates: async function(args){
+    args=args||{}; const q=agentCompact(args.query), sp=agentCompact(args.specialty), loc=agentCompact(args.location), st=agentCompact(args.status); const limit=Math.min(Number(args.limit)||20,50);
+    let items=state.candidates.filter(c=>{
+      const blob=agentCompact([c.name,c.specialty,c.location,c.status,c.jobs,c.notes,c.email,c.phone].join(" "));
+      return (!q||blob.includes(q)) && (!sp||agentCompact(c.specialty).includes(sp)||blob.includes(sp)) && (!loc||agentCompact(c.location).includes(loc)||blob.includes(loc)) && (!st||agentCompact(c.status).includes(st));
+    }).slice(0,limit).map(c=>({id:c.id,name:c.name,specialty:c.specialty||"",location:c.location||"",status:c.status||"",phone:c.phone||"",email:c.email||"",jobs:c.jobs||""}));
+    return {count:items.length,items:items};
+  },
+  create_candidate: async function(args){
+    if(!args||!args.name) return {ok:false,error:"Falta el nombre"};
+    const existing=agentFindCandidateByName(args.name); if(existing) return {ok:false,error:"Ya existe un candidato parecido",existing:{id:existing.id,name:existing.name}};
+    const c={id:uid(),name:args.name,phone:args.phone||"",email:args.email||"",specialty:args.specialty||"",location:args.location||"",status:args.status||"CV Recibido",cv:"",linkedin:args.linkedin||"",jobs:args.jobs||"",interviews:"",notes:args.notes||""};
+    state.candidates.push(c); saveState(); render(); return {ok:true,candidate:{id:c.id,name:c.name}};
+  },
+  create_client: async function(args){
+    if(!args||!args.name) return {ok:false,error:"Falta el nombre"};
+    const existing=agentFindClientByName(args.name); if(existing) return {ok:false,error:"El cliente ya existe",existing:{id:existing.id,name:existing.name}};
+    const c={id:uid(),name:args.name,status:args.status||"Activo",contact:args.contact||"",phone:args.phone||"",email:args.email||"",jobs:"",notes:args.notes||""};
+    state.clients.push(c); saveState(); render(); return {ok:true,client:{id:c.id,name:c.name}};
+  },
+  create_job: async function(args){
+    if(!args||!args.title) return {ok:false,error:"Falta el título del job"};
+    const j={id:uid(),title:args.title,client:args.client||"",owner:args.owner||"Santi",status:args.status||"Abierto",jobStatus:args.status||"Abierto",feePercent:Number(args.feePercent)||0,notes:args.notes||"",pipeline:[]};
+    state.jobs.push(j);
+    if(args.client){ const cl=agentFindClientByName(args.client); if(cl && !agentCompact(cl.jobs).includes(agentCompact(j.title))) cl.jobs=[cl.jobs,j.title].filter(Boolean).join(", "); }
+    saveState(); render(); return {ok:true,job:{id:j.id,title:j.title,client:j.client}};
+  },
+  link_candidate_to_job: async function(args){
+    const cand=agentFindCandidateByName(args&&args.candidate), job=agentFindJobByName(args&&args.job,args&&args.client);
+    if(!cand) return {ok:false,error:"No encontré el candidato"}; if(!job) return {ok:false,error:"No encontré el job"};
+    const stage=(args&&args.stage)||"Busqueda"; job.pipeline=job.pipeline||[];
+    let p=job.pipeline.find(x=>agentCompact(x.name)===agentCompact(cand.name)); if(p)p.stage=stage; else job.pipeline.push({name:cand.name,stage:stage,label:"En proceso",spec:cand.specialty||"",tel:cand.phone||"",email:cand.email||"",linkedin:cand.linkedin||"",cv:cand.cv||""});
+    if(!agentCompact(cand.jobs).includes(agentCompact(job.title))) cand.jobs=[cand.jobs,job.title+(job.client?" - "+job.client:"")].filter(Boolean).join(", ");
+    saveState(); render(); return {ok:true,candidate:cand.name,job:job.title,stage:stage};
+  },
+  create_task: async function(args){
+    if(!args||!args.title) return {ok:false,error:"Falta la tarea"};
+    const t={id:uid(),done:false,title:args.title,priority:args.priority||"Media",due:args.due||"",linkedTo:args.linkedTo||"",notes:args.notes||""}; state.tasks.push(t); saveState(); render(); return {ok:true,task:{id:t.id,title:t.title,due:t.due}};
+  },
+  generate_boolean: async function(args){
+    args=args||{}; const terms=[];
+    if(args.specialty){ const aliases=(args.aliases||[]).filter(Boolean); terms.push(`(${[args.specialty].concat(aliases).map(x=>'"'+x+'"').join(" OR ")})`); }
+    if(args.location){ const locs=(args.locationAliases||[]).filter(Boolean); terms.push(`(${[args.location].concat(locs).map(x=>'"'+x+'"').join(" OR ")})`); }
+    if(args.keywords && args.keywords.length) terms.push(`(${args.keywords.map(x=>'"'+x+'"').join(" OR ")})`);
+    if(args.exclude && args.exclude.length) terms.push(args.exclude.map(x=>`NOT "${x}"`).join(" "));
+    return {boolean:terms.join(" AND ")||args.query||""};
+  },
+  prepare_whatsapp: async function(args){
+    const cand=agentFindCandidateByName(args&&args.candidate); if(!cand) return {ok:false,error:"No encontré el candidato"};
+    const url=whatsappUrl(cand.phone); if(!url) return {ok:false,error:"El candidato no tiene teléfono"};
+    const message=(args&&args.message)||""; const full=message?url+(url.includes("?")?"&":"?")+"text="+encodeURIComponent(message):url;
+    return {ok:true,candidate:cand.name,phone:cand.phone,url:full,message:message};
+  }
+};
+
+async function agentExecuteCalls(calls){
+  const outputs=[];
+  for(const call of calls){
+    let args={}; try{args=typeof call.arguments==="string"?JSON.parse(call.arguments||"{}"):call.arguments||{};}catch(e){args={};}
+    const fn=agentTools[call.name];
+    let result=fn?await fn(args):{ok:false,error:"Herramienta no disponible"};
+    outputs.push({call_id:call.call_id,output:result});
+    if(call.name==="search_candidates" && result.items){
+      const html=`<strong>Encontré ${result.count} candidato${result.count===1?"":"s"}</strong>`+(result.items.length?`<div class="agent-result-list">${result.items.slice(0,12).map(x=>`<div class="agent-result-item"><strong>${agentSafe(x.name)}</strong><span>${agentSafe([x.specialty,x.location,x.status].filter(Boolean).join(" · "))}</span></div>`).join("")}</div>`:"");
+      agentAddMessage("assistant","",html);
+    }
+    if(call.name==="generate_boolean" && result.boolean) agentAddMessage("assistant","Booleano:\n"+result.boolean);
+    if(call.name==="prepare_whatsapp" && result.ok){
+      const html=`<strong>WhatsApp preparado para ${agentSafe(result.candidate)}</strong><br><span style="color:#64748B">${agentSafe(result.message||"Sin mensaje precargado")}</span><br><a href="${agentSafe(result.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-weight:800;color:#166534">Abrir WhatsApp →</a>`;
+      agentAddMessage("assistant","",html);
+    }
+  }
+  return outputs;
+}
+async function agentContinue(responseId,outputs){
+  const res=await fetch("/api/agent",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({previous_response_id:responseId,tool_outputs:outputs})});
+  const data=await res.json(); if(!res.ok) throw new Error(data.error||"Error del agente"); return data;
+}
+async function agentHandleResponse(data){
+  if(data.text) agentAddMessage("assistant",data.text);
+  const calls=data.calls||[]; if(!calls.length) return;
+  const writes=calls.filter(c=>AGENT_WRITE_TOOLS.has(c.name));
+  const reads=calls.filter(c=>!AGENT_WRITE_TOOLS.has(c.name));
+  let outputs=[];
+  if(reads.length) outputs=outputs.concat(await agentExecuteCalls(reads));
+  if(writes.length){
+    agentPending={responseId:data.response_id,calls:writes,priorOutputs:outputs};
+    const html=`<div class="agent-approval"><div class="agent-approval-title">Antes de modificar la app, confirmame esto:</div>${writes.map(c=>{let a={};try{a=JSON.parse(c.arguments||"{}")}catch(e){} return `<div class="agent-call">• ${agentSafe(agentToolLabel(c.name,a))}</div>`}).join("")}<div class="agent-approval-buttons"><button class="agent-approve" onclick="agentApprovePending()">Sí, ejecutar</button><button class="agent-reject" onclick="agentRejectPending()">Cancelar</button></div></div>`;
+    agentAddMessage("assistant","",html); return;
+  }
+  const next=await agentContinue(data.response_id,outputs); await agentHandleResponse(next);
+}
+async function agentApprovePending(){
+  if(!agentPending||agentBusy)return; const pending=agentPending; agentPending=null; agentBusy=true;
+  try{ const writeOutputs=await agentExecuteCalls(pending.calls); agentAddMessage("assistant","Listo. Ya apliqué los cambios en la app."); const next=await agentContinue(pending.responseId,(pending.priorOutputs||[]).concat(writeOutputs)); await agentHandleResponse(next); }
+  catch(e){agentAddMessage("system","No pude completar la acción: "+e.message);} finally{agentBusy=false;}
+}
+function agentRejectPending(){ agentPending=null; agentAddMessage("assistant","Cancelado. No modifiqué nada."); }
+async function agentSend(){
+  if(agentBusy)return; const input=document.getElementById("agent-input"); const msg=(input.value||"").trim(); if(!msg)return;
+  input.value=""; agentAddMessage("user",msg); agentBusy=true; document.getElementById("agent-send").disabled=true;
+  try{
+    const res=await fetch("/api/agent",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg,context:{counts:{candidates:state.candidates.length,clients:state.clients.length,jobs:state.jobs.length,tasks:state.tasks.length},currentView:currentView}})});
+    const data=await res.json(); if(!res.ok) throw new Error(data.error||"Error del agente"); await agentHandleResponse(data);
+  }catch(e){
+    const extra=e.message.includes("OPENAI_API_KEY")?"\n\nFalta configurar la clave de IA en Vercel. La app sigue funcionando normal; el agente quedará activo cuando agreguemos esa clave.":"";
+    agentAddMessage("system","No pude conectar con la IA: "+e.message+extra);
+  }finally{agentBusy=false; document.getElementById("agent-send").disabled=false; document.getElementById("agent-input").focus();}
+}
+function initAgent(){
+  const launcher=document.getElementById("agent-launcher"),panel=document.getElementById("agent-panel"),close=document.getElementById("agent-close"),send=document.getElementById("agent-send"),input=document.getElementById("agent-input"); if(!launcher||!panel)return;
+  launcher.addEventListener("click",()=>{panel.classList.toggle("open"); if(panel.classList.contains("open")){ if(!document.getElementById("agent-messages").children.length) agentAddMessage("assistant","Decime qué querés hacer. Puedo buscar candidatos, crear candidatos/clientes/jobs, vincular candidatos, crear tareas, generar booleanos y preparar WhatsApps. Los cambios siempre te los confirmo antes."); input.focus(); }});
+  close.addEventListener("click",()=>panel.classList.remove("open")); send.addEventListener("click",agentSend); input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();agentSend();}});
+}
+document.addEventListener("DOMContentLoaded",initAgent);
 
 </script>
   </body>
