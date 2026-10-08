@@ -315,7 +315,7 @@
         ],
       }),
       search_records: (a) => {
-        const all = hub
+        let all = hub
           .list(a.entity)
           .filter(
             (r) =>
@@ -329,9 +329,24 @@
                   : env.normalize(r[k]).includes(env.normalize(v)),
               ),
           );
+        let similar = false;
+        if (!all.length && a.query) {
+          all = hub
+            .nameMatches(a.entity, a.query)
+            .map((m) => m.item)
+            .filter((r) =>
+              Object.entries(a.filters || {}).every(([k, v]) =>
+                typeof v === "boolean" || typeof v === "number"
+                  ? r[k] === v
+                  : env.normalize(r[k]).includes(env.normalize(v)),
+              ),
+            );
+          similar = all.length > 0;
+        }
         const offset = a.offset || 0;
         return {
           count: all.length,
+          similar_matches: similar,
           items: redact(all.slice(offset, offset + (a.limit || 20))),
           offset,
           has_more: offset + (a.limit || 20) < all.length,
@@ -594,6 +609,8 @@
         throw Error("Argumentos JSON inválidos");
       }
       validate(args, entry.def.parameters);
+      if (call.name === "create_record" || call.name === "update_record")
+        args.data = hub.resolveRelations(args.entity, args.data);
       entry.adapter.check?.(args);
       const effect = catalog.effect(entry.def, args);
       const sealed = clone({

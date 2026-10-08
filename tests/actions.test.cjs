@@ -464,3 +464,64 @@ test("passive timer ticks do not invalidate approvals, but actual focus changes 
   s.state.pomodoro.running = false;
   await assert.rejects(s.engine.execute(p2, grant2), /datos cambiados/);
 });
+test("client references resolve accents, partial names, abbreviations, small typos and IDs before confirmation", async () => {
+  const s = setup(),
+    c = s.hub.save("clients", null, {
+      name: "Policlínica Nuestra Señora del Rosario",
+    });
+  for (const reference of [
+    "Rosario",
+    "policlinica nuestra senora del rosario",
+    "Policlinica Ntra. Sra. del Rosario",
+    "Rosairo",
+    c.id,
+  ]) {
+    const p = s.plan("create_record", {
+      entity: "jobs",
+      data: { title: "Enfermería", client: reference },
+    });
+    assert.equal(p.args.data.client, c.name);
+    assert.equal(p.review.arguments.data.client, c.name);
+    await assert.rejects(s.engine.execute(p), /Confirmación/);
+    const out = await s.engine.execute(p, s.engine.approval([p]));
+    assert.equal(out.record.client, c.name);
+  }
+  const result = await s.engine.execute(
+    s.plan("search_records", {
+      entity: "clients",
+      query: "Policlinica Ntra. Sra. del Rosario",
+    }),
+  );
+  assert.equal(result.items[0].id, c.id);
+});
+test("ambiguous client fragments require a choice and never create an unlinked record", () => {
+  const s = setup();
+  s.hub.save("clients", null, { name: "Clínica Rosario Norte" });
+  s.hub.save("clients", null, { name: "Clínica Rosario Sur" });
+  assert.throws(
+    () =>
+      s.plan("create_record", {
+        entity: "jobs",
+        data: { title: "Enfermería", client: "Rosario" },
+      }),
+    /varias coincidencias/,
+  );
+  assert.equal(s.state.jobs.length, 0);
+});
+test("task links resolve partial client names while short unrelated names never fuzzy-match", async () => {
+  const s = setup();
+  s.hub.save("clients", null, { name: "Hospital VIC Barcelona" });
+  const task = await s.write("create_record", {
+    entity: "tasks",
+    data: { title: "Llamar a Eva", linkedTo: "vic" },
+  });
+  assert.equal(task.record.linkedTo, "Hospital VIC Barcelona");
+  assert.throws(
+    () =>
+      s.plan("create_record", {
+        entity: "tasks",
+        data: { title: "Otra", linkedTo: "VIP" },
+      }),
+    /No encontré/,
+  );
+});

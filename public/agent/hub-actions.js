@@ -10,6 +10,82 @@
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .trim();
+  // Conservative name matching: normalize spelling, then match complete query
+  // tokens. Short names never use edit distance, and competing matches stay ambiguous.
+  function nameKey(value) {
+    const aliases = {
+      ntra: "nuestra",
+      sra: "senora",
+      sr: "senor",
+      sta: "santa",
+      sto: "santo",
+    };
+    return norm(value)
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .map((t) => aliases[t] || t)
+      .join(" ");
+  }
+  function distance(a, b) {
+    let row = Array.from({ length: b.length + 1 }, (_, i) => i),
+      previous = null;
+    for (let i = 1; i <= a.length; i++) {
+      const next = [i];
+      for (let j = 1; j <= b.length; j++) {
+        next[j] = Math.min(
+          next[j - 1] + 1,
+          row[j] + 1,
+          row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+        );
+        if (previous && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1])
+          next[j] = Math.min(next[j], previous[j - 2] + 1);
+      }
+      previous = row;
+      row = next;
+    }
+    return row[b.length];
+  }
+  function nameMatches(items, query) {
+    const q = nameKey(query);
+    if (!q) return [];
+    const tokens = q
+      .split(" ")
+      .filter((t) => !["de", "del", "la", "el", "los", "las", "y"].includes(t));
+    return items
+      .map((item) => {
+        const name = nameKey(
+          item.name || item.title || item.activity || item.consultant || "",
+        );
+        let score = 0;
+        if (name === q) score = 1;
+        else if (q.length >= 3 && name.includes(q)) score = 0.95;
+        else if (tokens.length && tokens.every((t) => t.length >= 3)) {
+          const words = name.split(" ");
+          const strengths = tokens.map((t) =>
+            Math.max(
+              0,
+              ...words.map((w) => {
+                if (w === t) return 1;
+                if (t.length >= 4 && w.startsWith(t)) return 0.9;
+                if (
+                  t.length >= 4 &&
+                  w.length >= 4 &&
+                  distance(t, w) <=
+                    Math.min(2, Math.floor(Math.max(t.length, w.length) / 5))
+                )
+                  return 0.8;
+                return 0;
+              }),
+            ),
+          );
+          if (strengths.every(Boolean)) score = Math.min(...strengths);
+        }
+        return { item, score };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score);
+  }
   function create(env) {
     const get = () => env.getState();
     function list(entity) {
@@ -22,6 +98,57 @@
       const r = list(entity).find((x) => x.id === id);
       if (!r) throw Error("Registro no encontrado: " + entity + " / " + id);
       return r;
+    }
+    function resolveName(entity, reference) {
+      const items = list(entity);
+      const byId = items.find((r) => r.id === reference);
+      if (byId) return byId;
+      const matches = nameMatches(items, reference);
+      const exact = matches.filter((m) => m.score === 1);
+      const choices = exact.length ? exact : matches;
+      if (choices.length === 1) return choices[0].item;
+      if (!choices.length)
+        throw Error(
+          "No encontré " +
+            catalog.entities[entity].label +
+            ' para "' +
+            reference +
+            '". Buscá otras palabras del nombre antes de cambiar el vínculo.',
+        );
+      throw Error(
+        'Hay varias coincidencias para "' +
+          reference +
+          '": ' +
+          choices
+            .slice(0, 10)
+            .map(
+              (m) => (m.item.name || m.item.title) + " (ID: " + m.item.id + ")",
+            )
+            .join("; ") +
+          ". Pedile al usuario elegir una.",
+      );
+    }
+    function resolveRelations(entity, data) {
+      const result = { ...data };
+      const relations = {
+        jobs: { client: "clients" },
+        tasks: { linkedTo: "clients" },
+      };
+      for (const [field, target] of Object.entries(relations[entity] || {})) {
+        if (
+          typeof result[field] === "string" &&
+          result[field].trim() &&
+          !(
+            entity === "placements" &&
+            field === "job" &&
+            norm(result[field]) === "otros"
+          )
+        ) {
+          const match = resolveName(target, result[field]);
+          result[field] = match.name || match.title;
+        }
+      }
+      return result;
     }
     function validate(entity, data, creating = false) {
       const spec = catalog.entities[entity];
@@ -497,6 +624,9 @@
       list,
       record,
       validate,
+      resolveName,
+      resolveRelations,
+      nameMatches: (entity, query) => nameMatches(list(entity), query),
       save,
       remove,
       link,

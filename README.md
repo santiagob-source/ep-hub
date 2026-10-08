@@ -6,7 +6,7 @@ El directorio raíz del proyecto en Vercel debe ser la raíz de este repositorio
 
 ## Acciones disponibles
 
-El agente usa lenguaje natural y conserva el contexto entre pedidos. Consulta la base antes de identificar registros; devuelve varias coincidencias para que el usuario pueda desambiguar. Las ediciones usan IDs exactos y solo los campos solicitados.
+El agente usa lenguaje natural y conserva el contexto entre pedidos. Consulta la base antes de identificar registros; devuelve varias coincidencias para que el usuario pueda desambiguar. Las ediciones usan IDs exactos y solo los campos solicitados. Las búsquedas toleran tildes, abreviaturas habituales, nombres incompletos y errores pequeños de escritura. Los vínculos de cliente de jobs y tareas convierten una coincidencia única (o un ID) al nombre real antes de mostrar la confirmación; si hay varias opciones, requieren elegir una.
 
 | Área                              | Operaciones                                                                              |
 | --------------------------------- | ---------------------------------------------------------------------------------------- |
