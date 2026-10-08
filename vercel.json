@@ -1,0 +1,6 @@
+{
+  "outputDirectory": ".",
+  "functions": {
+    "api/agent.js": { "maxDuration": 30 }
+  }
+}

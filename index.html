@@ -652,7 +652,7 @@ tr:hover td { background: #FAFBFC; }
   padding: 20px;
   background: rgba(10,20,40,.38);
   backdrop-filter: blur(4px);
-  z-index: 20;
+  z-index: 9500;
 }
 .modal.show { display: flex; }
 
@@ -1054,6 +1054,10 @@ tr:hover td { background: #FAFBFC; }
       </div>
     </section>
 
+    <script src="/public/agent/catalog.js"></script>
+    <script src="/public/agent/hub-actions.js"></script>
+    <script src="/public/agent/engine.js"></script>
+    <script src="/public/agent/runtime.js"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -2379,20 +2383,14 @@ function fc_addItem() {
   if (!state.forecast) state.forecast = [];
   var MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
   var month = forecastContext.month || MONTHS[new Date().getMonth()];
-  state.forecast.push({id:uid(), title:"Nuevo item", jobId:"", candId:"", consultor:"Santi", amount:0, month:month, billed:false});
-  saveState();
+  hubActions.save("forecast",null,{title:"Nuevo item",month});
   renderForecast();
 }
 
 function fc_upd(id, field, val) {
   var f=(state.forecast||[]).find(function(x){return x.id===id;});
   if(!f) return;
-  f[field] = field==="amount" ? parseFloat(val)||0 : val;
-  if(field==="jobId" && val && val!=="otros") {
-    var job=state.jobs.find(function(j){return j.id===val;});
-    if(job){ f.title=job.title; f.consultor=job.owner||"Santi"; if(!f.amount&&job.fee) f.amount=job.fee; }
-  }
-  saveState();
+  hubActions.save("forecast",id,{[field]:field==="amount"?parseFloat(val)||0:val});
 }
 
 function fc_del(id) {
@@ -2900,7 +2898,7 @@ function renderJobDetail(id) {
 
 function jd_status(jobId,val){
   var j=state.jobs.find(function(x){return x.id===jobId;});
-  if(j){j.jobStatus=val;saveState();renderJobDetail(jobId);}
+  if(j){hubActions.save("jobs",jobId,{status:val});renderJobDetail(jobId);}
 }
 
 function jd_calc(jobId){
@@ -2908,7 +2906,8 @@ function jd_calc(jobId){
   if(!j) return;
   var f=parseFloat(document.getElementById("fp-"+jobId).value)||0;
   var s=parseFloat(document.getElementById("sp-"+jobId).value)||0;
-  j.feePercent=f; j.salaryAgreed=s; j.fee=f&&s?Math.round(f/100*s):0;
+  hubActions.save("jobs",jobId,{feePercent:f,salaryAgreed:s});
+  j=state.jobs.find(x=>x.id===jobId);
   var el=document.getElementById("inv-"+jobId);
   if(el) el.textContent=j.fee?j.fee.toLocaleString("es-ES")+" \u20ac":"\u2014";
   saveState();
@@ -2995,7 +2994,7 @@ function jd_drop(event,jobId,stage){
     var j=state.jobs.find(function(x){return x.id===jobId;});
     if(!j) return;
     var p=j.pipeline.find(function(x){return x.name===d.name;});
-    if(p){p.stage=stage;saveState();renderJobDetail(jobId);}
+    if(p){var c=state.candidates.find(c=>c.name===p.name);if(c)hubActions.pipeline(c.id,jobId,"move",stage);else {p.stage=stage;saveState();}renderJobDetail(jobId);}
   }catch(e){}
 }
 
@@ -3003,14 +3002,15 @@ function jd_label(jobId,name,label){
   var j=state.jobs.find(function(x){return x.id===jobId;});
   if(!j) return;
   var p=j.pipeline.find(function(x){return x.name===name;});
-  if(p){p.label=label;saveState();renderJobDetail(jobId);}
+  if(p){var c=state.candidates.find(c=>c.name===name);if(c)hubActions.pipeline(c.id,jobId,"label",label);else {p.label=label;saveState();}renderJobDetail(jobId);}
 }
 
 function jd_remove(jobId,name){
   var j=state.jobs.find(function(x){return x.id===jobId;});
   if(!j) return;
-  j.pipeline=j.pipeline.filter(function(x){return x.name!==name;});
-  saveState();renderJobDetail(jobId);
+  var c=state.candidates.find(c=>c.name===name);
+  if(c)hubActions.pipeline(c.id,jobId,"unlink");else {j.pipeline=j.pipeline.filter(x=>x.name!==name);saveState();}
+  renderJobDetail(jobId);
 }
 
 
@@ -3356,16 +3356,7 @@ function openModal({ title, fields, values = {}, onSave }) {
     modal.remove();
     render();
     showToast("Guardado");
-    // Schedule notification if due date set
-    if (data.due) {
-      var dueMs = new Date(data.due).getTime();
-      var delay = dueMs - Date.now();
-      if (delay > 0 && delay < 86400000) {
-        setTimeout(function() {
-          showNotification("Recordatorio: " + (data.title || data.activity || ""), data.details || data.reminder || "");
-        }, delay);
-      }
-    }
+    // Record actions schedule their own reminders, shared with the agent.
   });
   modal.addEventListener("click", (event) => {
     if (event.target.matches("[data-close-modal]") || event.target === modal) modal.remove();
@@ -3384,26 +3375,11 @@ function editRecord(key, id) {
     fields: schema.fields,
     values: record,
     onSave: (data) => {
-      const updated = { ...record, ...data };
-      if (schema.fields.some(([field, , type]) => field === "amount" && type === "number")) updated.amount = Number(updated.amount || 0);
-      // Attach pending CV file if uploaded
+      const updated = hubActions.save(key, id || null, data);
       if (key === "candidates" && window._pendingCV) {
-        if (!updated.files) updated.files = {};
-        updated.files.cv = window._pendingCV;
-        updated.cv = window._pendingCV.name;
+        const saved = state.candidates.find(c => c.id === updated.id);
+        saved.files ||= {}; saved.files.cv = window._pendingCV; saved.cv = window._pendingCV.name;
         window._pendingCV = null;
-      }
-      const index = state[key].findIndex((item) => item.id === id);
-      if (index >= 0) state[key][index] = updated;
-      else state[key].push(updated);
-      // Schedule notification for "Volver a contactar"
-      if (key === "candidates" && updated.contactarFecha) {
-        var delay = new Date(updated.contactarFecha).getTime() - Date.now();
-        if (delay > 0 && delay < 30*24*3600*1000) {
-          setTimeout(function() {
-            showNotification("Volver a contactar: " + updated.name, updated.contactarNotas || "");
-          }, delay);
-        }
       }
     },
   });
@@ -3453,14 +3429,7 @@ function editBilling(id) {
 
   modal.querySelector("[data-save-billing]").addEventListener("click", () => {
     var data = Object.fromEntries(new FormData(modal.querySelector("form")).entries());
-    var updated = {...record, ...data, amount: Number(data.amount||0)};
-    var idx = state.placements.findIndex(p=>p.id===id);
-    if (idx>=0) state.placements[idx]=updated; else state.placements.push(updated);
-    // Mark candidate as facturado
-    if (updated.candidato) {
-      var cand = state.candidates.find(c=>normalize(c.name)===normalize(updated.candidato));
-      if (cand) cand.facturado = true;
-    }
+    var updated = hubActions.save("placements", id || null, data);
     saveState();
     modal.remove();
     renderPlacements();
@@ -3525,41 +3494,8 @@ function et_save(id) {
   if (!modal) return;
   var form = modal.querySelector("form");
   var data = Object.fromEntries(new FormData(form).entries());
-  var record = state.tasks.find(function(t){return t.id===id;}) || {id:id,done:false};
-  var updated = Object.assign({},record,data);
-  var idx = state.tasks.findIndex(function(t){return t.id===id;});
-  if (idx>=0) state.tasks[idx]=updated; else state.tasks.push(updated);
-  if (data.due) {
-    var due = new Date(data.due).getTime();
-    var delay = due - Date.now();
-    if (delay>0 && delay<86400000) {
-      setTimeout(function(){ showNotification("Tarea: "+data.title, data.linkedTo||""); }, delay);
-    }
-  }
-  // Sync to calendar if date/time set
-  if (data.due) {
-    var dueDate = new Date(data.due);
-    var days = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
-    var dayName = days[dueDate.getDay()];
-    // Map to calendar days (Mon-Fri only)
-    var calDays = ["Lunes","Martes","Miércoles","Jueves","Viernes"];
-    if (calDays.includes(dayName)) {
-      var timeStr = dueDate.getHours().toString().padStart(2,"0") + ":" + dueDate.getMinutes().toString().padStart(2,"0");
-      // Check if already a calendar event for this task
-      var existingEvt = state.events.find(function(e){return e.taskId===id;});
-      if (!existingEvt) {
-        state.events.push({id:uid(), taskId:id, title:data.title, day:dayName, time:timeStr, due:data.due});
-      } else {
-        existingEvt.title = data.title;
-        existingEvt.day = dayName;
-        existingEvt.time = timeStr;
-        existingEvt.due = data.due;
-      }
-      saveState();
-      showToast("Tarea guardada y sincronizada con el calendario");
-    }
-  }
-  saveState(); modal.remove(); render(); showToast("Tarea guardada");
+  hubActions.save("tasks", state.tasks.some(t => t.id === id) ? id : null, data);
+  modal.remove(); render(); showToast("Tarea guardada");
 }
 
 
@@ -3632,36 +3568,21 @@ function acp_save(jobId, stage) {
              (document.getElementById("acp-inp-"+jobId)||{value:""}).value.trim();
   if (!name) { showToast("El nombre es obligatorio"); return; }
 
-  job.pipeline = job.pipeline||[];
-  var existing = job.pipeline.find(function(p){return normalize(p.name)===normalize(name);});
-  if (existing) {
-    existing.stage = stage;
-  } else {
-    job.pipeline.push({
-      name: name, stage: stage, label: "En proceso",
-      spec: (document.getElementById("acp-s-"+jobId)||{value:""}).value,
-      tel: (document.getElementById("acp-t-"+jobId)||{value:""}).value,
-      email: (document.getElementById("acp-e-"+jobId)||{value:""}).value,
-      linkedin: (document.getElementById("acp-l-"+jobId)||{value:""}).value,
-      cv: (document.getElementById("acp-c-"+jobId)||{value:""}).value,
-    });
-  }
-
-  var cand = state.candidates.find(function(c){return normalize(c.name)===normalize(name);});
-  if (!cand) {
-    cand = {id:uid(), name:name, phone:(document.getElementById("acp-t-"+jobId)||{value:""}).value,
-      email:(document.getElementById("acp-e-"+jobId)||{value:""}).value,
-      specialty:(document.getElementById("acp-s-"+jobId)||{value:""}).value||job.title,
-      location:"", status:stage, cv:(document.getElementById("acp-c-"+jobId)||{value:""}).value,
-      linkedin:(document.getElementById("acp-l-"+jobId)||{value:""}).value, notes:"",
-      jobs:job.title+" - "+job.client};
-    state.candidates.push(cand);
-  } else {
-    if (!normalize(cand.jobs||"").includes(normalize(job.title)))
-      cand.jobs = [cand.jobs, job.title+" - "+job.client].filter(Boolean).join(", ");
-  }
-
-  saveState();
+  var cand = state.candidates.find(c => normalize(c.name) === normalize(name));
+  if (!cand) cand = hubActions.save("candidates", null, {
+    name, phone:(document.getElementById("acp-t-"+jobId)||{value:""}).value,
+    email:(document.getElementById("acp-e-"+jobId)||{value:""}).value,
+    specialty:(document.getElementById("acp-s-"+jobId)||{value:""}).value||job.title,
+    status:stage, linkedin:(document.getElementById("acp-l-"+jobId)||{value:""}).value,
+    cv:(document.getElementById("acp-c-"+jobId)||{value:""}).value
+  });
+  hubActions.link(cand.id, jobId, stage, {
+    spec:(document.getElementById("acp-s-"+jobId)||{value:""}).value,
+    tel:(document.getElementById("acp-t-"+jobId)||{value:""}).value,
+    email:(document.getElementById("acp-e-"+jobId)||{value:""}).value,
+    linkedin:(document.getElementById("acp-l-"+jobId)||{value:""}).value,
+    cv:(document.getElementById("acp-c-"+jobId)||{value:""}).value
+  });
   document.querySelector(".modal").remove();
   renderJobDetail(jobId);
   showToast("Candidato anadido");
@@ -3705,14 +3626,7 @@ function editJob(id, defaults) {
   modal.querySelector("[data-save-job]").addEventListener("click", function() {
     var form = modal.querySelector("form");
     var data = Object.fromEntries(new FormData(form).entries());
-    var updated = Object.assign({}, record, data, {
-      fee: data.feePercent && record.salaryAgreed ? Math.round(parseFloat(data.feePercent)/100*parseFloat(record.salaryAgreed)) : record.fee||0,
-      feePercent: parseFloat(data.feePercent)||record.feePercent||0,
-      pipeline: record.pipeline||[],
-      jobStatus: data.status || record.jobStatus || "Abierto"
-    });
-    var idx = state.jobs.findIndex(function(j){return j.id===id;});
-    if (idx>=0) state.jobs[idx]=updated; else state.jobs.push(updated);
+    hubActions.save("jobs", id || null, data);
     saveState(); modal.remove();
     if (window._jobFromClient) {
       var cid = window._jobFromClient; window._jobFromClient = null;
@@ -3754,19 +3668,8 @@ function editEvent(id) {
   document.getElementById("save-evt-btn").addEventListener("click", function() {
     var data = Object.fromEntries(new FormData(modal.querySelector("form")).entries());
     if (!data.title.trim()) { showToast("Pon un nombre al evento"); return; }
-    var updated = Object.assign({}, record, data);
-    var index = state.events.findIndex(function(e){return e.id===id;});
-    if (index>=0) state.events[index]=updated; else state.events.push(updated);
-    saveState();
-    modal.remove();
-    renderCalendar();
-    showToast("Evento guardado");
-    if (data.due) {
-      var delay = new Date(data.due).getTime() - Date.now();
-      if (delay>0 && delay<7*24*3600*1000) {
-        setTimeout(function(){ showNotification("Evento: "+data.title, data.day+" a las "+data.time); }, delay);
-      }
-    }
+    hubActions.save("events", id || null, data);
+    modal.remove(); renderCalendar(); showToast("Evento guardado");
   });
   modal.addEventListener("click", function(e){ if(e.target.matches("[data-close-modal]")||e.target===modal) modal.remove(); });
 }
@@ -3785,10 +3688,7 @@ function editGoal(id) {
     ],
     values: record,
     onSave: (data) => {
-      const updated = { ...record, ...data, target: Number(data.target || 0) };
-      const index = state.goals.findIndex((goal) => goal.id === id);
-      if (index >= 0) state.goals[index] = updated;
-      else state.goals.push(updated);
+      hubActions.save("goals", id || null, data);
     },
   });
 }
@@ -3805,8 +3705,7 @@ function addReportProject() {
     ],
     values: {},
     onSave: (data) => {
-      state.reportProjects ||= [];
-      state.reportProjects.push({ id: uid(), ...data, output: "" });
+      hubActions.save("reportProjects", null, data);
     },
   });
 }
@@ -3821,15 +3720,7 @@ function editFocusActivity(id) {
     ],
     values: record,
     onSave: (data) => {
-      const updated = { ...record, name: data.name || "Actividad", minutes: Math.max(Number(data.minutes || 1), 1) };
-      state.pomodoro.activities ||= [];
-      const index = state.pomodoro.activities.findIndex((item) => item.id === id);
-      if (index >= 0) state.pomodoro.activities[index] = updated;
-      else state.pomodoro.activities.push(updated);
-      state.pomodoro.mode = updated.name;
-      state.pomodoro.minutes = updated.minutes;
-      state.pomodoro.remaining = updated.minutes * 60;
-      state.pomodoro.running = false;
+      hubActions.save("focusActivities", id || null, data);
     },
   });
 }
@@ -3841,6 +3732,11 @@ function generateCandidateReport(projectId) {
   saveState();
   renderReports();
   document.querySelector("#report-output").textContent = project.output;
+}
+
+function generateWeeklyReport(){
+  const {total}=calcTotals();
+  return `Informe semanal Expansion People\n\nFacturación acumulada del Q: ${money(total)}.\nJobs activos: ${state.jobs.length}.\nCandidatos prioritarios: ${state.candidates.filter((candidate) => ["Prioritario", "Entrevista"].includes(candidate.status)).length}.\n\nFoco recomendado:\n1. Cerrar feedback de perfiles en entrevista.\n2. Reforzar sourcing en jobs con menos de 3 candidatos activos.\n3. Actualizar forecast y tramos de bonus antes del viernes.`;
 }
 
 document.addEventListener("click", (event) => {
@@ -3936,7 +3832,7 @@ document.addEventListener("click", (event) => {
   const del = event.target.closest("[data-delete]");
   if (del) {
     const [key, id] = del.dataset.delete.split(":");
-    state[key] = state[key].filter((item) => item.id !== id);
+    hubActions.remove(key, id);
     saveState();
     render();
     showToast("Eliminado");
@@ -3949,7 +3845,7 @@ document.addEventListener("click", (event) => {
   if (editJobButton) editJob(editJobButton.dataset.editJob);
   const deleteJobButton = event.target.closest("[data-delete-job]");
   if (deleteJobButton) {
-    state.jobs = state.jobs.filter((job) => job.id !== deleteJobButton.dataset.deleteJob);
+    hubActions.remove("jobs", deleteJobButton.dataset.deleteJob);
     saveState();
     render();
   }
@@ -4004,7 +3900,7 @@ document.addEventListener("click", (event) => {
   const deleteTask = event.target.closest("[data-delete-task]");
   if (deleteTask) {
     var dtid = deleteTask.dataset.deleteTask;
-    state.tasks = state.tasks.filter(function(t){return t.id !== dtid;});
+    hubActions.remove("tasks", dtid);
     saveState();
     render();
     return;
@@ -4013,15 +3909,14 @@ document.addEventListener("click", (event) => {
   const toggleTask = event.target.closest("[data-toggle-task]");
   if (toggleTask) {
     const task = state.tasks.find((item) => item.id === toggleTask.dataset.toggleTask);
-    task.done = toggleTask.checked;
-    saveState();
+    hubActions.save("tasks",task.id,{done:toggleTask.checked});
     render();
   }
 
   if (event.target.closest("[data-add-event]")) editEvent();
   const deleteEvent = event.target.closest("[data-delete-event]");
   if (deleteEvent) {
-    state.events = state.events.filter((eventItem) => eventItem.id !== deleteEvent.dataset.deleteEvent);
+    hubActions.remove("events", deleteEvent.dataset.deleteEvent);
     saveState();
     render();
   }
@@ -4064,7 +3959,7 @@ document.addEventListener("click", (event) => {
   if (editFocus) editFocusActivity(editFocus.dataset.editFocusActivity);
   const deleteFocus = event.target.closest("[data-delete-focus-activity]");
   if (deleteFocus) {
-    state.pomodoro.activities = state.pomodoro.activities.filter((item) => item.id !== deleteFocus.dataset.deleteFocusActivity);
+    hubActions.remove("focusActivities", deleteFocus.dataset.deleteFocusActivity);
     if (!state.pomodoro.activities.length) state.pomodoro.activities = clone(seed.pomodoro.activities);
     saveState();
     renderPomodoro();
@@ -4074,10 +3969,7 @@ document.addEventListener("click", (event) => {
   const reportButton = event.target.closest("[data-generate-candidate-report]");
   if (reportButton) generateCandidateReport(reportButton.dataset.generateCandidateReport);
 
-  if (event.target.closest("[data-generate-report]")) {
-    const { total } = calcTotals();
-    document.querySelector("#report-output").textContent = `Informe semanal Expansion People\n\nFacturación acumulada del Q: ${money(total)}.\nJobs activos: ${state.jobs.length}.\nCandidatos prioritarios: ${state.candidates.filter((candidate) => ["Prioritario", "Entrevista"].includes(candidate.status)).length}.\n\nFoco recomendado:\n1. Cerrar feedback de perfiles en entrevista.\n2. Reforzar sourcing en jobs con menos de 3 candidatos activos.\n3. Actualizar forecast y tramos de bonus antes del viernes.`;
-  }
+  if (event.target.closest("[data-generate-report]")) document.querySelector("#report-output").textContent = generateWeeklyReport();
 
   if (event.target.closest("[data-ask-ai]")) {
     const question = document.querySelector("#ai-question").value;
@@ -4229,10 +4121,7 @@ function renderNotas() {
   title.textContent = "Notas";
   quickAdd.style.display = "none";
   if (!state.notas) state.notas = [];
-  while (state.notas.length < 4) {
-    var colors = ["#FEF9C3","#DCFCE7","#EFF6FF","#FEE2E2"];
-    state.notas.push({id:uid(), title:"Nota "+(state.notas.length+1), content:"", color:colors[state.notas.length%4]});
-  }
+
 
   var COLORS = [
     {bg:"#FEF9C3",label:"Amarillo"},{bg:"#DCFCE7",label:"Verde"},
@@ -4269,25 +4158,25 @@ function renderNotas() {
 
 function nota_update(id, val) {
   var n = (state.notas||[]).find(function(x){return x.id===id;});
-  if (n) { n.content=val; saveState(); }
+  if (n) hubActions.save("notas",id,{content:val});
 }
 function nota_updateTitle(id, val) {
   var n = (state.notas||[]).find(function(x){return x.id===id;});
-  if (n) { n.title=val; saveState(); }
+  if (n) hubActions.save("notas",id,{title:val});
 }
 function nota_setColor(id, color) {
   var n = (state.notas||[]).find(function(x){return x.id===id;});
-  if (n) { n.color=color; saveState(); renderNotas(); }
+  if (n) { hubActions.save("notas",id,{color}); renderNotas(); }
 }
 function nota_delete(id) {
   if (!confirm("Eliminar esta nota?")) return;
-  state.notas = (state.notas||[]).filter(function(x){return x.id!==id;});
+  hubActions.remove("notas",id);
   saveState(); renderNotas();
 }
 function nota_add() {
   var colors = ["#FEF9C3","#DCFCE7","#EFF6FF","#FEE2E2","#F3E8FF","#fff"];
   state.notas = state.notas||[];
-  state.notas.push({id:uid(), title:"Nota "+(state.notas.length+1), content:"", color:colors[state.notas.length%colors.length]});
+  hubActions.save("notas",null,{title:"Nota "+(state.notas.length+1), content:"", color:colors[state.notas.length%colors.length]});
   saveState(); renderNotas();
 }
 
@@ -4551,20 +4440,14 @@ function modal_uploadCV(fileId) {
 function cand_addNote(candId) {
   var c = state.candidates.find(function(x){return x.id===candId;});
   if (!c) return;
-  if (!c.callNotes) c.callNotes = [];
-  c.callNotes.unshift({
-    date: new Date().toLocaleDateString("es-ES", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}),
-    text: ""
-  });
-  saveState();
+  hubActions.callNote(candId, "add", null, "");
   openDetail("candidate", candId, true);
 }
 
 function cand_updateNote(candId, idx, val) {
   var c = state.candidates.find(function(x){return x.id===candId;});
   if (c && c.callNotes && c.callNotes[idx]) {
-    c.callNotes[idx].text = val;
-    saveState();
+    hubActions.callNote(candId, "update", idx, val);
     var btn = document.getElementById("cn-save-" + candId + "-" + idx);
     if (btn) { btn.style.display = "none"; btn.textContent = "Guardar"; }
     showToast("Nota guardada");
@@ -4574,8 +4457,7 @@ function cand_updateNote(candId, idx, val) {
 function cand_deleteNote(candId, idx) {
   var c = state.candidates.find(function(x){return x.id===candId;});
   if (!c || !c.callNotes) return;
-  c.callNotes.splice(idx, 1);
-  saveState();
+  hubActions.callNote(candId, "delete", idx);
   openDetail("candidate", candId, true);
 }
 
@@ -4592,8 +4474,7 @@ function cand_saveNotes(candId) {
   if (!ta) return;
   var c = state.candidates.find(function(x){return x.id===candId;});
   if (c) {
-    c.notes = ta.value;
-    saveState();
+    hubActions.save("candidates",candId,{notes:ta.value});
     if (indicator) indicator.textContent = "✓ Guardado";
     if (indicator) indicator.style.color = "#166534";
     setTimeout(function(){
@@ -4674,39 +4555,7 @@ function prop_openModal(clientId, propIdx) {
   if (!client) return;
   if (!client.proposals) client.proposals = [];
   var isNew = (propIdx === null || propIdx === undefined);
-  var CONSULTORES = {
-    "Santi": {email:"santiagob@expansion-people.com", tel:"(+34) 636 240 244"},
-    "Esteve": {email:"seleccion@expansion-people.com", tel:"(+34) 93 3957662"},
-    "Alba": {email:"seleccion@expansion-people.com", tel:"(+34) 93 3957662"},
-    "Cori": {email:"seleccion@expansion-people.com", tel:"(+34) 93 3957662"}
-  };
-
-  var today = new Date().toLocaleDateString('es-ES', {day:'2-digit', month:'long', year:'numeric'});
-  var defConsultor = state.currentUser || "Santi";
-  var defInfo = CONSULTORES[defConsultor] || CONSULTORES["Santi"];
-
-  var p = isNew ? {
-    id: uid(), date: today, status: "borrador",
-    clientName: client.name,
-    razonSocial: client.razonSocial || "",
-    cif: client.cif || "",
-    direccion: client.dirFac || "",
-    contacto: client.contact || "",
-    emailCliente: client.email || "",
-    consultorName: defConsultor,
-    consultorEmail: defInfo.email,
-    consultorTel: defInfo.tel,
-    validity: "Hasta " + new Date().getFullYear() + "/" + (new Date().getFullYear()+1),
-    exclusivity: "Sí",
-    feeLines: [],
-    paymentTerms: {
-      modalidad: "Al éxito 100% honorarios",
-      emision: "Al pactar fecha de incorporación candidato/a-cliente",
-      vencimiento: "30 días f/f",
-      medio: "Transferencia",
-      notas: ""
-    }
-  } : client.proposals[propIdx];
+  var p = isNew ? hubActions.proposalDefaults(clientId) : client.proposals[propIdx];
 
   // Build feeLines UI
   var feeHtml = prop_buildFeeLinesHTML(p.feeLines || [], clientId);
@@ -4717,7 +4566,7 @@ function prop_openModal(clientId, propIdx) {
 
   var modal = document.createElement('div');
   modal.className = 'modal show';
-  modal.style.zIndex = '1000';
+  modal.style.zIndex = '9500';
   modal.innerHTML =
     '<div class="modal-card" style="max-width:700px;max-height:90vh;overflow-y:auto">' +
       '<div class="panel-header" style="position:sticky;top:0;background:#fff;z-index:2;border-bottom:1.5px solid #F1F5F9">' +
@@ -4888,15 +4737,7 @@ function prop_save(modal, client, propIdx, existing) {
       notas: val('p_pay_notas')
     }
   });
-  updated.generatedContent = prop_generateHTML(updated, client, updated.propTipo || 'completa');
-
-  if (!client.proposals) client.proposals = [];
-  if (propIdx !== null && propIdx !== undefined) {
-    client.proposals[propIdx] = updated;
-  } else {
-    client.proposals.push(updated);
-  }
-  saveState();
+  hubActions.proposal(client.id, propIdx === null || propIdx === undefined ? null : existing.id, updated);
   modal.remove();
   openDetail('client', client.id, true);
   showToast('Propuesta guardada');
@@ -5099,7 +4940,7 @@ function prop_view(clientId, propIdx) {
 
   var modal = document.createElement('div');
   modal.className = 'modal show';
-  modal.style.zIndex = '1001';
+  modal.style.zIndex = '9500';
   modal.innerHTML =
     '<div class="modal-card" style="max-width:860px;max-height:95vh;overflow:hidden;display:flex;flex-direction:column">' +
       '<div class="panel-header" style="flex-shrink:0">' +
@@ -5168,8 +5009,7 @@ function prop_delete(clientId, propIdx) {
   if (!confirm('¿Eliminar esta propuesta?')) return;
   var client = state.clients.find(function(c){return c.id===clientId;});
   if (!client || !client.proposals) return;
-  client.proposals.splice(propIdx, 1);
-  saveState();
+  hubActions.removeProposal(clientId,client.proposals[propIdx].id);
   openDetail('client', clientId, true);
   showToast('Propuesta eliminada');
 }
@@ -5420,12 +5260,9 @@ function saveFichajeManual() {
   const si = document.getElementById("fm-salida").value;
   const notas = document.getElementById("fm-notas").value;
   if (!date || !ei) { showToast("⚠️ Fecha y entrada obligatorios"); return; }
-  state.fichajes.push({
-    id: Date.now().toString(), date,
-    entrada: new Date(date + "T" + ei).toISOString(),
-    salida: si ? new Date(date + "T" + si).toISOString() : null,
-    notas
-  });
+  hubActions.save("fichajes",null,{date,
+    entrada:new Date(date+"T"+ei).toISOString(),
+    salida:si?new Date(date+"T"+si).toISOString():"",notas});
   saveState();
   showToast("💾 Guardado");
   renderFichaje();
@@ -5433,7 +5270,7 @@ function saveFichajeManual() {
 
 function deleteFichaje(id) {
   if (!confirm("¿Eliminar este registro?")) return;
-  state.fichajes = (state.fichajes || []).filter(f => f.id !== id);
+  hubActions.remove("fichajes",id);
   saveState();
   renderFichaje();
 }
@@ -5535,165 +5372,66 @@ function renderMetricas() {
 /* =========================
    AGENTE EP — arquitectura extensible
    ========================= */
-const AGENT_WRITE_TOOLS = new Set(["create_candidate","create_client","create_job","link_candidate_to_job","create_task"]);
-let agentPending = null;
-let agentBusy = false;
-let agentHistory = [];
-
-function agentCompact(value){
-  return String(value||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
-}
+const hubActions = EPHubActions.create({
+  getState:()=>state, uid, save:saveState, notify:showNotification,
+  schedule:(fn,delay)=>setTimeout(fn,delay), defaultActivities:seed.pomodoro.activities,
+  generateProposal:prop_generateHTML
+});
 function agentSafe(value){
-  return String(value == null ? "" : value).replace(/[&<>"']/g,function(ch){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch];});
+  return String(value == null ? "" : value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch]);
 }
 function agentAddMessage(role,text,html){
   const box=document.getElementById("agent-messages"); if(!box)return;
   const el=document.createElement("div"); el.className="agent-msg "+role;
-  if(html) el.innerHTML=html; else el.textContent=text||"";
-  box.appendChild(el); box.scrollTop=box.scrollHeight;
+  if(html)el.innerHTML=html;else el.textContent=text||"";
+  box.appendChild(el);box.scrollTop=box.scrollHeight;
 }
-function agentToolLabel(name,args){
-  const a=args||{};
-  if(name==="search_candidates") return `Buscar candidatos${a.query?`: ${a.query}`:""}`;
-  if(name==="create_candidate") return `Crear candidato: ${a.name||""}`;
-  if(name==="create_client") return `Crear cliente: ${a.name||""}`;
-  if(name==="create_job") return `Crear job: ${a.title||""}${a.client?` · ${a.client}`:""}`;
-  if(name==="link_candidate_to_job") return `Vincular ${a.candidate||"candidato"} a ${a.job||"job"}`;
-  if(name==="create_task") return `Crear tarea: ${a.title||""}`;
-  if(name==="generate_boolean") return `Generar booleano${a.specialty?`: ${a.specialty}`:""}`;
-  if(name==="prepare_whatsapp") return `Preparar WhatsApp para ${a.candidate||"candidato"}`;
-  return name;
-}
-function agentFindCandidateByName(name){
-  const q=agentCompact(name); if(!q)return null;
-  return state.candidates.find(c=>agentCompact(c.name)===q) || state.candidates.find(c=>agentCompact(c.name).includes(q)||q.includes(agentCompact(c.name)));
-}
-function agentFindClientByName(name){
-  const q=agentCompact(name); if(!q)return null;
-  return state.clients.find(c=>agentCompact(c.name)===q) || state.clients.find(c=>agentCompact(c.name).includes(q)||q.includes(agentCompact(c.name)));
-}
-function agentFindJobByName(name,client){
-  const q=agentCompact(name), cq=agentCompact(client);
-  return state.jobs.find(j=>(!q||agentCompact(j.title)===q) && (!cq||agentCompact(j.client)===cq)) ||
-         state.jobs.find(j=>(!q||agentCompact(j.title).includes(q)||q.includes(agentCompact(j.title))) && (!cq||agentCompact(j.client).includes(cq)));
-}
-
-const agentTools = {
-  search_candidates: async function(args){
-    args=args||{}; const q=agentCompact(args.query), sp=agentCompact(args.specialty), loc=agentCompact(args.location), st=agentCompact(args.status); const limit=Math.min(Number(args.limit)||20,50);
-    let items=state.candidates.filter(c=>{
-      const blob=agentCompact([c.name,c.specialty,c.location,c.status,c.jobs,c.notes,c.email,c.phone].join(" "));
-      return (!q||blob.includes(q)) && (!sp||agentCompact(c.specialty).includes(sp)||blob.includes(sp)) && (!loc||agentCompact(c.location).includes(loc)||blob.includes(loc)) && (!st||agentCompact(c.status).includes(st));
-    }).slice(0,limit).map(c=>({id:c.id,name:c.name,specialty:c.specialty||"",location:c.location||"",status:c.status||"",phone:c.phone||"",email:c.email||"",jobs:c.jobs||""}));
-    return {count:items.length,items:items};
+const agentEngine=EPAgentEngine.create({
+  hub:hubActions,getState:()=>state,normalize,save:saveState,refresh:render,
+  documentText:a=>document.querySelector(a.kind==='job_description'?'#jd-txt':a.kind==='job_email'?'#email-mati-txt':'#em-txt-'+a.id)?.value||'',
+  functions:{jd_remove,jd_drop,jd_label,jd_month,jd_clearMonth,fc_bill,fc_unbill,
+    prop_markSigned,prop_setRenewal,fichajeAction,renderPomodoro,dash_hide,dash_show,renderDashboard,
+    generateCandidateReport,generateWeeklyReport,calcTotals,openDetail,setView,generarEmailMati,emailMatiPlacement,generarJobDescription,
+    cand_downloadFile,cand_uploadFile,cand_removeFile,prop_view,prop_downloadWord,prop_downloadSigned,
+    prop_downloadAdjunted,prop_uploadSigned,prop_attachAny,exportarDatos,importarDatos,whatsappUrl}
+});
+const agentRuntime=EPAgentRuntime.create({
+  engine:agentEngine,fetch:(...args)=>fetch(...args),message:agentAddMessage,
+  context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser}),
+  setBusy:value=>{const button=document.getElementById("agent-send");if(button)button.disabled=value;},
+  finishReview:()=>document.querySelectorAll('.agent-approval-buttons button').forEach(b=>b.disabled=true),
+  review:(id,reviews)=>{
+    const html='<div class="agent-approval"><div class="agent-approval-title">Antes de modificar la app, confirmame esto:</div>'+reviews.map(r=>
+      '<div class="agent-call"><strong>'+agentSafe(r.title)+'</strong><pre style="white-space:pre-wrap;max-height:240px;overflow:auto">'+agentSafe(JSON.stringify(r.arguments,null,2))+'</pre>'+
+      (r.before?'<details><summary>Datos actuales</summary><pre style="white-space:pre-wrap;max-height:200px;overflow:auto">'+agentSafe(JSON.stringify(r.before,null,2))+'</pre></details>':'')+
+      '<p>'+agentSafe(r.effects)+'</p></div>').join('')+
+      '<div class="agent-approval-buttons"><button class="agent-approve" data-agent-approve="'+id+'">Sí, ejecutar</button><button class="agent-reject" data-agent-reject="'+id+'">Cancelar</button></div></div>';
+    agentAddMessage('assistant','',html);
   },
-  create_candidate: async function(args){
-    if(!args||!args.name) return {ok:false,error:"Falta el nombre"};
-    const existing=agentFindCandidateByName(args.name); if(existing) return {ok:false,error:"Ya existe un candidato parecido",existing:{id:existing.id,name:existing.name}};
-    const c={id:uid(),name:args.name,phone:args.phone||"",email:args.email||"",specialty:args.specialty||"",location:args.location||"",status:args.status||"CV Recibido",cv:"",linkedin:args.linkedin||"",jobs:args.jobs||"",interviews:"",notes:args.notes||""};
-    state.candidates.push(c); saveState(); render(); return {ok:true,candidate:{id:c.id,name:c.name}};
-  },
-  create_client: async function(args){
-    if(!args||!args.name) return {ok:false,error:"Falta el nombre"};
-    const existing=agentFindClientByName(args.name); if(existing) return {ok:false,error:"El cliente ya existe",existing:{id:existing.id,name:existing.name}};
-    const c={id:uid(),name:args.name,status:args.status||"Activo",contact:args.contact||"",phone:args.phone||"",email:args.email||"",jobs:"",notes:args.notes||""};
-    state.clients.push(c); saveState(); render(); return {ok:true,client:{id:c.id,name:c.name}};
-  },
-  create_job: async function(args){
-    if(!args||!args.title) return {ok:false,error:"Falta el título del job"};
-    const j={id:uid(),title:args.title,client:args.client||"",owner:args.owner||"Santi",status:args.status||"Abierto",jobStatus:args.status||"Abierto",feePercent:Number(args.feePercent)||0,notes:args.notes||"",pipeline:[]};
-    state.jobs.push(j);
-    if(args.client){ const cl=agentFindClientByName(args.client); if(cl && !agentCompact(cl.jobs).includes(agentCompact(j.title))) cl.jobs=[cl.jobs,j.title].filter(Boolean).join(", "); }
-    saveState(); render(); return {ok:true,job:{id:j.id,title:j.title,client:j.client}};
-  },
-  link_candidate_to_job: async function(args){
-    const cand=agentFindCandidateByName(args&&args.candidate), job=agentFindJobByName(args&&args.job,args&&args.client);
-    if(!cand) return {ok:false,error:"No encontré el candidato"}; if(!job) return {ok:false,error:"No encontré el job"};
-    const stage=(args&&args.stage)||"Busqueda"; job.pipeline=job.pipeline||[];
-    let p=job.pipeline.find(x=>agentCompact(x.name)===agentCompact(cand.name)); if(p)p.stage=stage; else job.pipeline.push({name:cand.name,stage:stage,label:"En proceso",spec:cand.specialty||"",tel:cand.phone||"",email:cand.email||"",linkedin:cand.linkedin||"",cv:cand.cv||""});
-    if(!agentCompact(cand.jobs).includes(agentCompact(job.title))) cand.jobs=[cand.jobs,job.title+(job.client?" - "+job.client:"")].filter(Boolean).join(", ");
-    saveState(); render(); return {ok:true,candidate:cand.name,job:job.title,stage:stage};
-  },
-  create_task: async function(args){
-    if(!args||!args.title) return {ok:false,error:"Falta la tarea"};
-    const t={id:uid(),done:false,title:args.title,priority:args.priority||"Media",due:args.due||"",linkedTo:args.linkedTo||"",notes:args.notes||""}; state.tasks.push(t); saveState(); render(); return {ok:true,task:{id:t.id,title:t.title,due:t.due}};
-  },
-  generate_boolean: async function(args){
-    args=args||{}; const terms=[];
-    if(args.specialty){ const aliases=(args.aliases||[]).filter(Boolean); terms.push(`(${[args.specialty].concat(aliases).map(x=>'"'+x+'"').join(" OR ")})`); }
-    if(args.location){ const locs=(args.locationAliases||[]).filter(Boolean); terms.push(`(${[args.location].concat(locs).map(x=>'"'+x+'"').join(" OR ")})`); }
-    if(args.keywords && args.keywords.length) terms.push(`(${args.keywords.map(x=>'"'+x+'"').join(" OR ")})`);
-    if(args.exclude && args.exclude.length) terms.push(args.exclude.map(x=>`NOT "${x}"`).join(" "));
-    return {boolean:terms.join(" AND ")||args.query||""};
-  },
-  prepare_whatsapp: async function(args){
-    const cand=agentFindCandidateByName(args&&args.candidate); if(!cand) return {ok:false,error:"No encontré el candidato"};
-    const url=whatsappUrl(cand.phone); if(!url) return {ok:false,error:"El candidato no tiene teléfono"};
-    const message=(args&&args.message)||""; const full=message?url+(url.includes("?")?"&":"?")+"text="+encodeURIComponent(message):url;
-    return {ok:true,candidate:cand.name,phone:cand.phone,url:full,message:message};
+  showResult:(plan,result)=>{
+    if(result.items)agentAddMessage('assistant','Encontré '+result.count+' registros.\n'+result.items.map(x=>(x.name||x.title||x.activity||x.consultant||x.date)+' · '+x.id).join('\n'));
+    if(result.boolean)agentAddMessage('assistant','Booleano:\n'+result.boolean);
+    if(result.url)agentAddMessage('assistant','', '<a href="'+agentSafe(result.url)+'" target="_blank" rel="noopener">Abrir WhatsApp para '+agentSafe(result.candidate)+'</a>');
+    if(plan.effect!=='read')agentAddMessage('assistant',result.awaiting_user?'Acción preparada. Falta seleccionar/revisar el archivo en el Hub.':result.ok===false?'La acción no se completó.':'Acción aplicada: '+plan.review.title);
   }
-};
-
-async function agentExecuteCalls(calls){
-  const outputs=[];
-  for(const call of calls){
-    let args={}; try{args=typeof call.arguments==="string"?JSON.parse(call.arguments||"{}"):call.arguments||{};}catch(e){args={};}
-    const fn=agentTools[call.name];
-    let result=fn?await fn(args):{ok:false,error:"Herramienta no disponible"};
-    outputs.push({call_id:call.call_id,output:result});
-    if(call.name==="search_candidates" && result.items){
-      const html=`<strong>Encontré ${result.count} candidato${result.count===1?"":"s"}</strong>`+(result.items.length?`<div class="agent-result-list">${result.items.slice(0,12).map(x=>`<div class="agent-result-item"><strong>${agentSafe(x.name)}</strong><span>${agentSafe([x.specialty,x.location,x.status].filter(Boolean).join(" · "))}</span></div>`).join("")}</div>`:"");
-      agentAddMessage("assistant","",html);
-    }
-    if(call.name==="generate_boolean" && result.boolean) agentAddMessage("assistant","Booleano:\n"+result.boolean);
-    if(call.name==="prepare_whatsapp" && result.ok){
-      const html=`<strong>WhatsApp preparado para ${agentSafe(result.candidate)}</strong><br><span style="color:#64748B">${agentSafe(result.message||"Sin mensaje precargado")}</span><br><a href="${agentSafe(result.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-weight:800;color:#166534">Abrir WhatsApp →</a>`;
-      agentAddMessage("assistant","",html);
-    }
-  }
-  return outputs;
-}
-async function agentContinue(responseId,outputs){
-  const res=await fetch("/api/agent",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({previous_response_id:responseId,tool_outputs:outputs})});
-  const data=await res.json(); if(!res.ok) throw new Error(data.error||"Error del agente"); return data;
-}
-async function agentHandleResponse(data){
-  if(data.text) agentAddMessage("assistant",data.text);
-  const calls=data.calls||[]; if(!calls.length) return;
-  const writes=calls.filter(c=>AGENT_WRITE_TOOLS.has(c.name));
-  const reads=calls.filter(c=>!AGENT_WRITE_TOOLS.has(c.name));
-  let outputs=[];
-  if(reads.length) outputs=outputs.concat(await agentExecuteCalls(reads));
-  if(writes.length){
-    agentPending={responseId:data.response_id,calls:writes,priorOutputs:outputs};
-    const html=`<div class="agent-approval"><div class="agent-approval-title">Antes de modificar la app, confirmame esto:</div>${writes.map(c=>{let a={};try{a=JSON.parse(c.arguments||"{}")}catch(e){} return `<div class="agent-call">• ${agentSafe(agentToolLabel(c.name,a))}</div>`}).join("")}<div class="agent-approval-buttons"><button class="agent-approve" onclick="agentApprovePending()">Sí, ejecutar</button><button class="agent-reject" onclick="agentRejectPending()">Cancelar</button></div></div>`;
-    agentAddMessage("assistant","",html); return;
-  }
-  const next=await agentContinue(data.response_id,outputs); await agentHandleResponse(next);
-}
-async function agentApprovePending(){
-  if(!agentPending||agentBusy)return; const pending=agentPending; agentPending=null; agentBusy=true;
-  try{ const writeOutputs=await agentExecuteCalls(pending.calls); agentAddMessage("assistant","Listo. Ya apliqué los cambios en la app."); const next=await agentContinue(pending.responseId,(pending.priorOutputs||[]).concat(writeOutputs)); await agentHandleResponse(next); }
-  catch(e){agentAddMessage("system","No pude completar la acción: "+e.message);} finally{agentBusy=false;}
-}
-function agentRejectPending(){ agentPending=null; agentAddMessage("assistant","Cancelado. No modifiqué nada."); }
+});
 async function agentSend(){
-  if(agentBusy)return; const input=document.getElementById("agent-input"); const msg=(input.value||"").trim(); if(!msg)return;
-  input.value=""; agentAddMessage("user",msg); agentBusy=true; document.getElementById("agent-send").disabled=true;
-  try{
-    const res=await fetch("/api/agent",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg,context:{counts:{candidates:state.candidates.length,clients:state.clients.length,jobs:state.jobs.length,tasks:state.tasks.length},currentView:currentView}})});
-    const data=await res.json(); if(!res.ok) throw new Error(data.error||"Error del agente"); await agentHandleResponse(data);
-  }catch(e){
-    const extra=e.message.includes("OPENAI_API_KEY")?"\n\nFalta configurar la clave de IA en Vercel. La app sigue funcionando normal; el agente quedará activo cuando agreguemos esa clave.":"";
-    agentAddMessage("system","No pude conectar con la IA: "+e.message+extra);
-  }finally{agentBusy=false; document.getElementById("agent-send").disabled=false; document.getElementById("agent-input").focus();}
+  const input=document.getElementById('agent-input');const message=input.value.trim();if(!message)return;
+  if(!agentRuntime.busy&&!agentRuntime.pending)input.value='';await agentRuntime.send(message);input.focus();
 }
 function initAgent(){
-  const launcher=document.getElementById("agent-launcher"),panel=document.getElementById("agent-panel"),close=document.getElementById("agent-close"),send=document.getElementById("agent-send"),input=document.getElementById("agent-input"); if(!launcher||!panel)return;
-  launcher.addEventListener("click",()=>{panel.classList.toggle("open"); if(panel.classList.contains("open")){ if(!document.getElementById("agent-messages").children.length) agentAddMessage("assistant","Decime qué querés hacer. Puedo buscar candidatos, crear candidatos/clientes/jobs, vincular candidatos, crear tareas, generar booleanos y preparar WhatsApps. Los cambios siempre te los confirmo antes."); input.focus(); }});
-  close.addEventListener("click",()=>panel.classList.remove("open")); send.addEventListener("click",agentSend); input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();agentSend();}});
+  const launcher=document.getElementById('agent-launcher'),panel=document.getElementById('agent-panel');if(!launcher||!panel)return;
+  launcher.addEventListener('click',()=>{panel.classList.toggle('open');if(panel.classList.contains('open')){if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Decime qué querés hacer en el Hub. Puedo consultar, crear, editar, vincular y eliminar registros; los cambios siempre requieren tu confirmación.');document.getElementById('agent-input').focus();}});
+  document.getElementById('agent-close').addEventListener('click',()=>panel.classList.remove('open'));
+  document.getElementById('agent-send').addEventListener('click',agentSend);
+  document.getElementById('agent-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();agentSend();}});
+  document.getElementById('agent-messages').addEventListener('click',e=>{
+    const approve=e.target.closest('[data-agent-approve]'),reject=e.target.closest('[data-agent-reject]');
+    if(approve&&!approve.disabled)agentRuntime.approve(approve.dataset.agentApprove);
+    if(reject&&!reject.disabled)agentRuntime.reject(reject.dataset.agentReject);
+  });
 }
-document.addEventListener("DOMContentLoaded",initAgent);
+document.addEventListener('DOMContentLoaded',initAgent);
 
 </script>
   </body>
