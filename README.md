@@ -1,6 +1,6 @@
 # Expansion People Hub
 
-Aplicación HTML con Firebase y un Agente EP operativo. Vercel publica `api/agent.js` como `/api/agent`. La variable de producción sigue siendo **`OPENAI_API_KEY`**; `AGENT_MODEL` es opcional (`gpt-5.4-mini` por defecto).
+Aplicación HTML con Firebase y Kitty, un asistente operativo. Vercel publica `api/agent.js` como `/api/agent`. La variable de producción sigue siendo **`OPENAI_API_KEY`**; `AGENT_MODEL` es opcional (`gpt-5.4-mini` por defecto).
 
 El directorio raíz del proyecto en Vercel debe ser la raíz de este repositorio. `vercel.json` establece la salida estática en `.` para servir las páginas y `/public/agent/*.js`, además de la función Node. Tras desplegar, GET `/api/agent` debe devolver 405 con JSON. POST con `{"message":"Hola"}` devuelve `response_id`, `text` y `calls`. Los errores controlados de la función devuelven JSON; el frontend también reconoce respuestas HTML de la plataforma y explica el error de despliegue. OpenAI tiene un límite de 20 segundos, dentro de los 30 segundos de la función.
 
@@ -58,6 +58,8 @@ Las pruebas de Node no requieren dependencias adicionales. Las de navegador requ
 
 La autenticación y sincronización con Firebase real y la llamada a OpenAI con la clave de producción se validan después del despliegue con una cuenta de prueba autorizada.
 
-### Gmail personal y formato de mensajes
+### Kitty: experiencia de uso y Gmail personal
 
-El Agente EP admite conexión personal de Gmail, búsqueda, lectura, creación de borradores y envío de borradores con confirmación. La configuración y sus límites están en [docs/gmail.md](docs/gmail.md). Sin configuración OAuth, el Hub y sus acciones siguen funcionando; Gmail muestra qué falta configurar. `OPENAI_API_KEY` conserva su nombre. Los mensajes del agente muestran `**negrita**` como texto en negrita y escapan HTML recibido.
+Kitty admite conexión personal de Gmail, búsqueda, lectura, creación de borradores y envío de borradores con confirmación. La configuración y sus límites están en [docs/gmail.md](docs/gmail.md). Sin configuración OAuth, el Hub y sus acciones siguen funcionando; Gmail muestra qué falta configurar. `OPENAI_API_KEY` conserva su nombre. Los mensajes del agente muestran `**negrita**` como texto en negrita y escapan HTML recibido.
+
+Kitty abre un panel amplio con modo expandido y ocupa la pantalla en móvil. Incluye sugerencias que completan el mensaje (no ejecutan acciones automáticamente), indicadores de progreso, resultados en tarjetas con acceso a fichas y revisiones con campos legibles. El motor de confirmaciones y los servicios de Firebase/Gmail se reutilizan sin alterar su política de escritura. El formato de mensajes escapa HTML antes de aplicar negritas, listas, títulos y código. La vista por cadenas completas de Gmail y el historial guardado por usuario quedan para una etapa posterior.

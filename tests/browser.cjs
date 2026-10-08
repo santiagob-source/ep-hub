@@ -322,6 +322,51 @@ const handler = require("../api/agent");
     assert.equal(await formatted.locator("strong").count(), 2);
     assert.equal(await formatted.locator("script").count(), 0);
     assert.ok(!(await formatted.innerText()).includes("**"));
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    assert.ok((await page.locator("#agent-panel").boundingBox()).width >= 670);
+    await page.locator("#agent-expand").click();
+    assert.equal(
+      await page.locator("#agent-expand").getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.ok((await page.locator("#agent-panel").boundingBox()).width > 1000);
+    await page.locator("[data-kitty-prompt]").first().click();
+    assert.match(
+      await page.locator("#agent-input").inputValue(),
+      /tareas pendientes/,
+    );
+    await page.evaluate(() =>
+      agentAddMessage(
+        "assistant",
+        "",
+        EPKittyPresentation.review({
+          title: "Crear tarea",
+          arguments: { data: { title: "Llamar a Eva", linkedTo: "VIC" } },
+          effects: "Se guardará en el Hub.",
+        }),
+      ),
+    );
+    const review = page.locator(".agent-call").last();
+    assert.match(await review.innerText(), /Vincular con/);
+    assert.equal(await review.locator("pre").count(), 0);
+    await page.screenshot({ path: "/tmp/kitty-desktop.png" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobile = await page.locator("#agent-panel").boundingBox();
+    assert.equal(mobile.width, 390);
+    assert.equal(
+      await page.evaluate(
+        () => document.getElementById("agent-panel").scrollWidth + 2,
+      ),
+      390,
+    );
+    assert.ok(await page.locator("#agent-input").isVisible());
+    await page.screenshot({ path: "/tmp/kitty-mobile.png" });
+    await page.locator("#agent-input").press("Escape");
+    assert.equal(
+      await page.locator("#agent-launcher").getAttribute("aria-expanded"),
+      "false",
+    );
+    assert.equal(await page.locator("#agent-panel").isVisible(), false);
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",

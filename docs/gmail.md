@@ -1,4 +1,4 @@
-# Gmail del Agente EP
+# Gmail del Kitty
 
 Cada usuario conecta su propia cuenta desde **Conectar Gmail** en el panel del agente. La sesión se valida con Firebase; el token de actualización de Google se cifra en el servidor y se guarda en una cookie HTTPS HttpOnly vinculada al UID del usuario. No se guarda en el estado compartido de Firestore, localStorage ni en conversaciones con OpenAI. La conexión dura hasta 30 días en ese navegador; Google puede revocarla antes. Al cambiar de usuario del Hub, el buzón anterior no queda accesible al nuevo usuario.
 
@@ -12,7 +12,7 @@ Cada usuario conecta su propia cuenta desde **Conectar Gmail** en el panel del a
    - `GOOGLE_CLIENT_SECRET`: secreto del cliente OAuth.
    - `GMAIL_TOKEN_ENCRYPTION_KEY`: 32 bytes aleatorios en hexadecimal (64 caracteres). Generar localmente con `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` y cargar directamente en Vercel. No compartir estos valores por chat ni subirlos al repositorio.
 5. Hacer Redeploy para que Vercel aplique las variables. Mantener `OPENAI_API_KEY` con su nombre actual.
-6. Iniciar sesión en el Hub, abrir Agente EP, pulsar **Conectar Gmail**, elegir cuenta y conceder los permisos solicitados. La autorización vuelve a la app.
+6. Iniciar sesión en el Hub, abrir Kitty, pulsar **Conectar Gmail**, elegir cuenta y conceder los permisos solicitados. La autorización vuelve a la app.
 7. Probar primero: «Buscá mis últimos cinco correos». Luego «Leé el primero». Para probar borradores: «Prepará un borrador para [email] con asunto [asunto] y texto [texto]», revisar y confirmar. Para enviar hace falta un pedido explícito y otra confirmación mostrando destinatarios, asunto y contenido real del borrador. No se envían mensajes como parte de las pruebas automatizadas.
 
 **Desconectar** elimina el acceso desde ese navegador. Para revocar completamente el permiso de Google, quitar la app en la configuración de seguridad de la cuenta de Google. Cambiar la clave de cifrado invalida las conexiones existentes.

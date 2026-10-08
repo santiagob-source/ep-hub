@@ -12,6 +12,7 @@
     };
     const errorText = (e) => e?.message || "Error del agente";
     async function request(payload) {
+      env.progress?.("Kitty está pensando…");
       const controller = new AbortController(),
         timer = setTimeout(() => controller.abort(), 35000);
       try {
@@ -64,6 +65,15 @@
     }
     async function execute(plan, token) {
       try {
+        env.progress?.(
+          plan.name.startsWith("gmail_")
+            ? plan.effect === "read"
+              ? "Consultando Gmail…"
+              : "Aplicando la acción en Gmail…"
+            : plan.effect === "read"
+              ? "Buscando en el Hub…"
+              : "Aplicando los cambios…",
+        );
         const output = await env.engine.execute(plan, token);
         env.showResult(plan, output);
         return { call_id: plan.call_id, output };
@@ -102,6 +112,7 @@
           if (ids.has(call.call_id)) throw Error("Llamada duplicada");
           ids.add(call.call_id);
           const plan = env.engine.prepare(call);
+          env.progress?.("Preparando la acción…");
           await env.engine.stage?.(plan);
           plans.push(plan);
         } catch (e) {

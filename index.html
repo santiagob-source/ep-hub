@@ -986,29 +986,19 @@ tr:hover td { background: #FAFBFC; }
 }
 
 
-/* ── AGENTE EP ── */
-.agent-launcher{position:fixed;right:24px;bottom:24px;z-index:9000;border:0;border-radius:999px;background:#0A1F5C;color:#fff;padding:13px 18px;font:800 13px 'Plus Jakarta Sans',sans-serif;box-shadow:0 12px 32px rgba(10,31,92,.28);cursor:pointer;display:flex;gap:8px;align-items:center}
-.agent-launcher:hover{transform:translateY(-1px)}
-.agent-panel{position:fixed;right:24px;bottom:82px;z-index:9001;width:min(430px,calc(100vw - 32px));height:min(650px,calc(100vh - 120px));background:#fff;border:1px solid #D6E1EE;border-radius:18px;box-shadow:0 22px 70px rgba(15,23,42,.22);display:none;flex-direction:column;overflow:hidden}
-.agent-panel.open{display:flex}
-.agent-head{padding:15px 16px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#F8FBFF,#EEF5FF)}
-.agent-head strong{color:#0A1F5C;font-size:15px}.agent-head small{display:block;color:#64748B;margin-top:2px;font-size:11px}
-.agent-close{border:0;background:transparent;font-size:22px;color:#64748B;cursor:pointer}
-.agent-messages{flex:1;overflow:auto;padding:14px;background:#F8FAFC}
-.agent-msg{max-width:88%;padding:10px 12px;border-radius:12px;margin:0 0 10px;font-size:12.5px;line-height:1.45;white-space:pre-wrap}
-.agent-msg.user{margin-left:auto;background:#0A1F5C;color:#fff;border-bottom-right-radius:4px}
-.agent-msg.assistant{background:#fff;border:1px solid #E2E8F0;color:#0F172A;border-bottom-left-radius:4px}
-.agent-msg.system{background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;max-width:100%}
-.agent-composer{padding:12px;border-top:1px solid #E2E8F0;background:#fff}
-.agent-composer textarea{width:100%;box-sizing:border-box;min-height:64px;max-height:120px;resize:vertical;border:1.5px solid #CBD5E1;border-radius:10px;padding:10px;font:500 12.5px 'Plus Jakarta Sans',sans-serif;outline:none}
-.agent-composer textarea:focus{border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,.10)}
-.agent-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}.agent-hint{font-size:10.5px;color:#94A3B8}
-.agent-send{border:0;border-radius:9px;background:#2563EB;color:white;font-weight:800;padding:9px 13px;cursor:pointer}.agent-send:disabled{opacity:.5;cursor:not-allowed}
-.agent-approval{background:#F8FAFC;border:1px solid #CBD5E1;border-radius:12px;padding:11px;margin:8px 0}
-.agent-approval-title{font-weight:800;color:#0A1F5C;margin-bottom:7px;font-size:12px}.agent-call{font-size:11.5px;padding:7px 0;border-top:1px dashed #E2E8F0}.agent-call:first-of-type{border-top:0}
-.agent-approval-buttons{display:flex;gap:8px;margin-top:10px}.agent-approve,.agent-reject{border-radius:8px;padding:8px 10px;font-size:11.5px;font-weight:800;cursor:pointer}.agent-approve{border:0;background:#166534;color:#fff}.agent-reject{border:1px solid #CBD5E1;background:#fff;color:#475569}
-.agent-result-list{display:grid;gap:7px;margin-top:8px}.agent-result-item{border:1px solid #E2E8F0;border-radius:9px;padding:8px;background:#fff}.agent-result-item strong{font-size:12px;color:#0A1F5C}.agent-result-item span{display:block;color:#64748B;font-size:11px;margin-top:2px}
-@media(max-width:700px){.agent-launcher{right:14px;bottom:14px}.agent-panel{right:10px;bottom:70px;width:calc(100vw - 20px);height:72vh}}
+/* Kitty — conversational workspace */
+.agent-launcher{position:fixed;right:24px;bottom:24px;z-index:9000;border:0;border-radius:999px;background:#142958;color:#fff;padding:15px 24px;font:700 15px 'Plus Jakarta Sans',sans-serif;box-shadow:0 8px 30px #14295833;cursor:pointer}
+.agent-panel{position:fixed;right:20px;top:20px;bottom:20px;z-index:9001;width:min(680px,calc(100vw - 40px));background:#fff;border:1px solid #dbe3ee;border-radius:24px;box-shadow:0 24px 100px #14295833;display:none;flex-direction:column;overflow:hidden}
+.agent-panel.open{display:flex}.agent-panel.expanded{inset:20px;width:auto;max-width:1200px;margin:auto}
+.agent-head{padding:20px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e8edf5;gap:12px}.agent-head strong{display:block;color:#142958;font-size:23px;letter-spacing:-.7px}.agent-head small{display:block;color:#718096;font-size:12px;margin-top:4px}.kitty-head-actions{display:flex;gap:6px}.agent-close,.kitty-expand{border:1px solid #e2e8f0;border-radius:10px;background:white;width:38px;height:38px;font-size:20px;color:#52617b;cursor:pointer}
+.kitty-toolbar{padding:10px 24px;display:flex;gap:10px;align-items:center;justify-content:space-between;background:#fafbfe;border-bottom:1px solid #e8edf5}.kitty-toolbar button{font:600 11px 'Plus Jakarta Sans',sans-serif;border:1px solid #dce4ee;border-radius:999px;background:white;color:#52617b;padding:7px 11px;cursor:pointer;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kitty-status{font-size:11px;color:#63758e}.kitty-status.working{color:#5065cf}.kitty-status.working:before{content:' ';display:inline-block;width:7px;height:7px;background:#7885df;border-radius:50%;margin-right:6px;animation:kitty-pulse 1s infinite alternate}@keyframes kitty-pulse{to{opacity:.25}}
+.agent-messages{flex:1;min-height:0;overflow:auto;padding:24px;background:#f6f8fc;overscroll-behavior:contain}.agent-msg{max-width:94%;padding:16px 18px;border-radius:18px;margin:0 0 18px;font-size:14px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}.agent-msg.user{margin-left:auto;background:#142958;color:white;border-bottom-right-radius:5px;max-width:85%}.agent-msg.assistant{background:white;border:1px solid #e6ebf3;color:#283650;border-bottom-left-radius:5px}.agent-msg.system{background:#fff8ef;border:1px solid #f7dcb9;color:#925221;max-width:100%}.agent-msg h3{font-size:15px;line-height:1.5;margin:0 0 12px}.agent-msg ul,.agent-msg ol{padding-left:22px;margin:8px 0;white-space:normal}.agent-msg li{margin:5px 0}.agent-msg p{margin:6px 0}.agent-msg code{background:#edf1f8;padding:2px 5px;border-radius:5px}
+.kitty-shortcuts{display:flex;gap:7px;padding:10px 24px 0;flex-wrap:wrap}.kitty-shortcuts button{border:1px solid #e0e6f0;background:#f8faff;color:#485b7b;border-radius:9px;padding:7px 10px;cursor:pointer;font-size:11px}.kitty-shortcuts button:disabled{opacity:.45;cursor:wait}
+.agent-composer{padding:14px 24px 20px;background:white}.agent-composer textarea{width:100%;box-sizing:border-box;min-height:86px;max-height:160px;resize:vertical;border:1px solid #dce3ee;border-radius:15px;padding:14px;font:500 14px 'Plus Jakarta Sans',sans-serif;outline:none;background:#fcfdff}.agent-composer textarea:focus{border-color:#7c89cd;box-shadow:0 0 0 3px #7c89cd18}.agent-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}.agent-hint{font-size:11px;color:#718096}.agent-send{border:0;border-radius:11px;background:#142958;color:white;font-weight:700;padding:11px 20px;cursor:pointer}.agent-send:disabled{opacity:.5;cursor:wait}
+.agent-approval{white-space:normal}.agent-approval-title{font-weight:700;color:#142958;font-size:16px;margin-bottom:14px}.agent-call{padding:14px 0;border-top:1px solid #e6ebf3}.agent-call dl{margin:0}.kitty-field{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;margin:8px 0;font-size:13px}.kitty-field dt{color:#718096}.kitty-field dd{margin:0;white-space:pre-wrap;max-height:280px;overflow:auto}.kitty-field-group h4{font-size:12px;color:#718096;margin:12px 0 5px}.kitty-effects{font-size:12px;color:#718096}.agent-call details{margin-top:12px;font-size:12px}.agent-approval-buttons{display:flex;gap:10px;margin-top:16px}.agent-approve,.agent-reject{border-radius:10px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer}.agent-approve{border:0;background:#142958;color:white}.agent-reject{border:1px solid #dce3ee;background:white;color:#52617b}.agent-approval-buttons button:disabled{opacity:.45;cursor:default}
+.kitty-results-heading{font-size:12px;color:#718096;margin-bottom:10px}.agent-result-list{display:grid;gap:10px;white-space:normal}.agent-result-item{border:1px solid #e2e8f0;border-radius:12px;padding:14px;background:#fcfdff}.agent-result-item strong{color:#142958;font-size:14px}.agent-result-item span{display:block;color:#718096;font-size:12px;margin-top:3px}.agent-result-item p{font-size:12px;color:#52617b}.agent-result-item button{border:0;background:transparent;color:#536ab3;font-size:12px;padding:8px 0 0;cursor:pointer}
+@media(max-width:700px){.agent-launcher{right:14px;bottom:14px}.agent-panel,.agent-panel.expanded{inset:0;width:100%;max-width:none;margin:0;border-radius:0;height:100dvh}.agent-head{padding:16px}.kitty-toolbar{padding:10px 16px}.agent-messages{padding:16px}.agent-msg{max-width:100%;font-size:14px}.kitty-shortcuts{padding:10px 16px 0}.agent-composer{padding:12px 16px max(14px,env(safe-area-inset-bottom))}.agent-hint{font-size:10px}.kitty-field{grid-template-columns:85px minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.kitty-status.working:before{animation:none}}
 
 </style>
 </head>
@@ -1044,23 +1034,22 @@ tr:hover td { background: #FAFBFC; }
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <button id="agent-launcher" class="agent-launcher" type="button" aria-label="Abrir Agente EP">✨ Agente EP</button>
-    <section id="agent-panel" class="agent-panel" aria-label="Agente EP">
-      <div class="agent-head"><div><strong>✨ Agente EP</strong><small>Busca, prepara y ejecuta acciones en tu Hub</small></div><button id="agent-close" class="agent-close" type="button">&times;</button></div>
-      <div style="padding:8px 14px;border-bottom:1px solid #D6E1EE"><button id="agent-gmail" type="button">Conectar Gmail</button></div>
-      <div id="agent-messages" class="agent-messages"></div>
-      <div class="agent-composer">
-        <textarea id="agent-input" placeholder="Ej: Buscá psiquiatras en Barcelona · Creá un job de anestesia para Juaneda · Recordame llamar a María el viernes"></textarea>
-        <div class="agent-actions"><span class="agent-hint">Los cambios en la app siempre te pedirán confirmación.</span><button id="agent-send" class="agent-send" type="button">Enviar</button></div>
-      </div>
+    <button id="agent-launcher" class="agent-launcher" type="button" aria-label="Abrir Kitty" aria-controls="agent-panel" aria-expanded="false">✦ Kitty</button>
+    <section id="agent-panel" class="agent-panel" aria-label="Kitty, tu asistente" aria-hidden="true">
+      <div class="agent-head"><div><strong>✦ Kitty</strong><small>Tu Hub y tu correo, en una conversación</small></div><div class="kitty-head-actions"><button id="agent-expand" class="kitty-expand" type="button" aria-label="Ampliar Kitty" aria-pressed="false">⤢</button><button id="agent-close" class="agent-close" type="button" aria-label="Cerrar Kitty">×</button></div></div>
+      <div class="kitty-toolbar"><span id="kitty-status" class="kitty-status" role="status">Lista para ayudarte</span><button id="agent-gmail" type="button">Conectar Gmail</button></div>
+      <div id="agent-messages" class="agent-messages" role="log" aria-label="Conversación con Kitty" aria-live="polite"></div>
+      <div class="kitty-shortcuts" aria-label="Sugerencias"><button type="button" data-kitty-prompt="Buscá mis tareas pendientes para hoy.">✓ Mi día</button><button type="button" data-kitty-prompt="Buscá mis últimos cinco correos y resumilos.">✉ Mis correos</button><button type="button" data-kitty-prompt="Quiero buscar candidatos. Preguntame qué perfil necesito.">⌕ Candidatos</button><button type="button" data-kitty-prompt="Quiero crear una tarea. Preguntame qué tengo que hacer y con quién vincularla.">＋ Crear tarea</button></div>
+      <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para Kitty" placeholder="Pedile a Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/message-format.js?v=20261008-gmail-1"></script>
-    <script src="/public/agent/gmail.js?v=20261008-gmail-1"></script>
-    <script src="/public/agent/catalog.js?v=20261008-gmail-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261008-gmail-1"></script>
-    <script src="/public/agent/engine.js?v=20261008-gmail-1"></script>
-    <script src="/public/agent/runtime.js?v=20261008-gmail-1"></script>
+    <script src="/public/agent/presentation.js?v=20261008-kitty-1"></script>
+    <script src="/public/agent/message-format.js?v=20261008-kitty-1"></script>
+    <script src="/public/agent/gmail.js?v=20261008-kitty-1"></script>
+    <script src="/public/agent/catalog.js?v=20261008-kitty-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261008-kitty-1"></script>
+    <script src="/public/agent/engine.js?v=20261008-kitty-1"></script>
+    <script src="/public/agent/runtime.js?v=20261008-kitty-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -5403,35 +5392,40 @@ const agentEngine=EPAgentEngine.create({
 const agentRuntime=EPAgentRuntime.create({
   engine:agentEngine,fetch:(...args)=>fetch(...args),message:agentAddMessage,
   context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser,gmail:agentGmail.context()}),
-  setBusy:value=>{const button=document.getElementById("agent-send");if(button)button.disabled=value;},
+  setBusy:value=>{document.getElementById('agent-send').disabled=value;document.getElementById('agent-input').disabled=value;document.querySelectorAll('[data-kitty-prompt]').forEach(b=>b.disabled=value);if(!value)kittyStatus(agentRuntime.pending?'Esperando tu confirmación':'Lista para ayudarte',false);},
+  progress:label=>kittyStatus(label,true),
   finishReview:()=>document.querySelectorAll('.agent-approval-buttons button').forEach(b=>b.disabled=true),
   review:(id,reviews)=>{
-    const html='<div class="agent-approval"><div class="agent-approval-title">Antes de modificar la app, confirmame esto:</div>'+reviews.map(r=>
-      '<div class="agent-call"><strong>'+agentSafe(r.title)+'</strong><pre style="white-space:pre-wrap;max-height:240px;overflow:auto">'+agentSafe(JSON.stringify(r.arguments,null,2))+'</pre>'+
-      (r.before?'<details><summary>Datos actuales</summary><pre style="white-space:pre-wrap;max-height:200px;overflow:auto">'+agentSafe(JSON.stringify(r.before,null,2))+'</pre></details>':'')+
-      '<p>'+agentSafe(r.effects)+'</p></div>').join('')+
-      '<div class="agent-approval-buttons"><button class="agent-approve" data-agent-approve="'+id+'">Sí, ejecutar</button><button class="agent-reject" data-agent-reject="'+id+'">Cancelar</button></div></div>';
+    kittyStatus("Esperando tu confirmación",false);
+    const resolve=(key,value,data)=>{const entity={candidate_id:'candidates',job_id:'jobs',client_id:'clients',id:data.entity}[key];if(entity){try{const row=hubActions.record(entity,value);return row.name||row.title||value;}catch{}}if(key==='entity')return EPAgentCatalog.entities[value]?.label||value;};
+    const html='<div class="agent-approval"><div class="agent-approval-title">Revisá lo que voy a hacer</div>'+reviews.map(r=>EPKittyPresentation.review(r,resolve)).join('')+'<div class="agent-approval-buttons"><button class="agent-approve" data-agent-approve="'+id+'">Confirmar acción</button><button class="agent-reject" data-agent-reject="'+id+'">Cancelar</button></div></div>';
     agentAddMessage('assistant','',html);
   },
   showResult:(plan,result)=>{
-    if(result.items)agentAddMessage('assistant','Encontré '+result.count+' registros.\n'+result.items.map(x=>(x.name||x.title||x.activity||x.consultant||x.date)+' · '+x.id).join('\n'));
+    if(result.items)agentAddMessage('assistant','',EPKittyPresentation.results(plan,result));
     if(result.boolean)agentAddMessage('assistant','Booleano:\n'+result.boolean);
     if(result.url)agentAddMessage('assistant','', '<a href="'+agentSafe(result.url)+'" target="_blank" rel="noopener">Abrir WhatsApp para '+agentSafe(result.candidate)+'</a>');
-    if(plan.effect!=='read')agentAddMessage('assistant',result.awaiting_user?'Acción preparada. Falta seleccionar/revisar el archivo en el Hub.':result.ok===false?'La acción no se completó.':'Acción aplicada: '+plan.review.title);
+    if(plan.effect!=='read')agentAddMessage('assistant',result.awaiting_user?'Acción preparada. Falta seleccionar/revisar el archivo en el Hub.':result.ok===false?'La acción no se completó.':'✓ '+agentEngine.review(plan).title);
   }
 });
 async function agentSend(){
   const input=document.getElementById('agent-input');const message=input.value.trim();if(!message)return;
   if(!agentRuntime.busy&&!agentRuntime.pending)input.value='';await agentRuntime.send(message);input.focus();
 }
+function kittyStatus(label,working){const el=document.getElementById('kitty-status');el.textContent=label;el.classList.toggle('working',working);}
 function initAgent(){
   const launcher=document.getElementById('agent-launcher'),panel=document.getElementById('agent-panel');if(!launcher||!panel)return;
   document.getElementById('agent-gmail').addEventListener('click',async()=>{try{const info=await agentGmail.status();if(info.connected){if(confirm('¿Desconectar '+info.email+' de este navegador?'))await agentGmail.disconnect();}else await agentGmail.connect();}catch(e){agentAddMessage('system',e.message);}});
-  launcher.addEventListener('click',()=>{agentGmail.status().catch(()=>{});panel.classList.toggle('open');if(panel.classList.contains('open')){if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Decime qué querés hacer en el Hub. Puedo consultar, crear, editar, vincular y eliminar registros; los cambios siempre requieren tu confirmación.');document.getElementById('agent-input').focus();}});
-  document.getElementById('agent-close').addEventListener('click',()=>panel.classList.remove('open'));
+  const show=visible=>{panel.classList.toggle('open',visible);panel.setAttribute('aria-hidden',String(!visible));launcher.setAttribute('aria-expanded',String(visible));if(visible){agentGmail.status().catch(()=>{});if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Hola, soy **Kitty**.\nTe ayudo a organizar el Hub y trabajar con tu correo. Contame qué necesitás o elegí una sugerencia.\n\nAntes de cambiar datos o enviar algo, siempre te voy a pedir confirmación.');document.getElementById('agent-input').focus();}else launcher.focus();};
+  launcher.addEventListener('click',()=>show(!panel.classList.contains('open')));
+  document.getElementById('agent-close').addEventListener('click',()=>show(false));
+  document.getElementById('agent-expand').addEventListener('click',e=>{const expanded=panel.classList.toggle('expanded');e.currentTarget.setAttribute('aria-pressed',String(expanded));e.currentTarget.setAttribute('aria-label',expanded?'Reducir Kitty':'Ampliar Kitty');});
+  panel.addEventListener('keydown',e=>{if(e.key==='Escape'){show(false);e.stopPropagation();}});
+  document.querySelectorAll('[data-kitty-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=document.getElementById('agent-input');input.value=b.dataset.kittyPrompt;input.focus();}));
   document.getElementById('agent-send').addEventListener('click',agentSend);
   document.getElementById('agent-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();agentSend();}});
   document.getElementById('agent-messages').addEventListener('click',e=>{
+    const record=e.target.closest('[data-kitty-record]');if(record){openDetail(record.dataset.kittyEntity,record.dataset.kittyRecord);return;}
     const approve=e.target.closest('[data-agent-approve]'),reject=e.target.closest('[data-agent-reject]');
     if(approve&&!approve.disabled)agentRuntime.approve(approve.dataset.agentApprove);
     if(reject&&!reject.disabled)agentRuntime.reject(reject.dataset.agentReject);

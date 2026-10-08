@@ -10,7 +10,7 @@ test("assistant bold formatting escapes HTML before adding strong tags", () => {
     format.render(
       "Hecho: **Leonardo**\n- **Nota:** <img src=x onerror=alert(1)>",
     ),
-    "Hecho: <strong>Leonardo</strong>\n- <strong>Nota:</strong> &lt;img src=x onerror=alert(1)&gt;",
+    "Hecho: <strong>Leonardo</strong>\n<ul>\n<li><strong>Nota:</strong> &lt;img src=x onerror=alert(1)&gt;</li>\n</ul>",
   );
 });
 test("Gmail encrypted sessions bind user, purpose and expiry and reject tampering", () => {
