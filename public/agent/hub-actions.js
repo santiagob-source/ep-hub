@@ -1,8 +1,8 @@
 (function (root, factory) {
   if (typeof module === "object" && module.exports)
-    module.exports = factory(require("./catalog"));
-  else root.EPHubActions = factory(root.EPAgentCatalog);
-})(globalThis, function (catalog) {
+    module.exports = factory(require("./catalog"), require("./phone"));
+  else root.EPHubActions = factory(root.EPAgentCatalog, root.EPPhone);
+})(globalThis, function (catalog, phone) {
   const copy = (x) => JSON.parse(JSON.stringify(x));
   const norm = (x) =>
     String(x || "")
@@ -130,6 +130,7 @@
     }
     function resolveRelations(entity, data) {
       const result = { ...data };
+      if (Object.hasOwn(result, "phone")) result.phone = phone.normalize(result.phone, result.phoneCountry);
       const relations = {
         jobs: { client: "clients" },
         tasks: { linkedTo: "clients" },
@@ -267,6 +268,7 @@
     // Shared persistence used by the Hub forms and the agent. UI supplies form strings;
     // tools validate typed fields before invoking the same operation.
     function save(entity, id, data) {
+      data = resolveRelations(entity, data);
       const s = get(),
         spec = catalog.entities[entity];
       if (!spec) throw Error("Entidad no disponible");

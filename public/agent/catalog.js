@@ -13,6 +13,7 @@
       defaults: {
         name: "",
         phone: "",
+        phoneCountry: "",
         email: "",
         specialty: "",
         location: "",
@@ -34,6 +35,7 @@
         status: "Activo",
         contact: "",
         phone: "",
+        phoneCountry: "",
         email: "",
         jobs: "",
         notes: "",

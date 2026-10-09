@@ -1043,14 +1043,15 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para Kitty" placeholder="Pedile a Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/whatsapp.js?v=20261009-whatsapp-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-whatsapp-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-whatsapp-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-whatsapp-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-whatsapp-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-whatsapp-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-whatsapp-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-whatsapp-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-phone-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-phone-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-phone-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-phone-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-phone-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-phone-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-phone-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-phone-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-phone-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1894,7 +1895,8 @@ const schemas = {
     title: "Candidato",
     columns: [
       ["name", "Nombre"],
-      ["phone", "Teléfono"],
+      ["phone", "Teléfono (España por defecto; admite +prefijo)"],
+      ["phoneCountry", "País del teléfono (si no es España)"],
       ["specialty", "Especialidad"],
       ["status", "Estado", "select", ["CV Recibido","CV Enviado","Llamada","Entrevista","Entrevista C/C","Oferta","Placement","Descartado","Volver a contactar"]],
       ["jobs", "Jobs"],
@@ -1902,7 +1904,8 @@ const schemas = {
     ],
     fields: [
       ["name", "Nombre"],
-      ["phone", "Teléfono"],
+      ["phone", "Teléfono (España por defecto; admite +prefijo)"],
+      ["phoneCountry", "País del teléfono (si no es España)"],
       ["email", "Email"],
       ["specialty", "Especialidad"],
       ["location", "Ubicación"],
@@ -1921,7 +1924,8 @@ const schemas = {
     columns: [
       ["name", "Cliente"],
       ["contact", "Contacto"],
-      ["phone", "Teléfono"],
+      ["phone", "Teléfono (España por defecto; admite +prefijo)"],
+      ["phoneCountry", "País del teléfono (si no es España)"],
       ["email", "Email"],
       ["jobs", "Jobs"],
     ],
@@ -1929,7 +1933,8 @@ const schemas = {
       ["name", "Cliente"],
       ["status", "Estado", "select", ["Activo", "En proceso", "Pausado", "Cerrado"]],
       ["contact", "Contacto"],
-      ["phone", "Teléfono"],
+      ["phone", "Teléfono (España por defecto; admite +prefijo)"],
+      ["phoneCountry", "País del teléfono (si no es España)"],
       ["email", "Email"],
       ["jobs", "Jobs"],
       ["notes", "Notas", "textarea"],
@@ -2020,7 +2025,7 @@ function getDirectoryConfig(key) {
     meta: (item) => [
       ["Especialidad", item.specialty || "-"],
       ["Estado", item.status || "-"],
-      ["Telefono", item.phone || "-"],
+      ["Telefono", EPPhone.display(item.phone) || "-"],
       ["Job", item.jobs || "-"],
     ],
     foot: (item) => item.notes || item.interviews || "Sin notas todavia",
@@ -2570,7 +2575,7 @@ function renderClientDetail(id) {
         <div class="panel-header"><h2 class="panel-title">Contacto</h2></div>
         <div class="panel-body detail-list">
           <div><span>Persona</span><strong>${client.contact || "-"}</strong></div>
-          <div><span>Telefono</span><strong>${client.phone || "-"}</strong></div>
+          <div><span>Telefono</span><strong>${EPPhone.display(client.phone) || "-"}</strong></div>
           <div><span>Email</span><strong>${client.email || "-"}</strong></div>
           <div><span>Jobs declarados</span><strong>${client.jobs || "-"}</strong></div>
           <div><span>Razón Social</span><strong>${client.razonSocial || "—"}</strong></div>
@@ -2635,7 +2640,7 @@ function renderCandidateDetail(id) {
         <div class="panel-body detail-list">
           <div><span>Especialidad</span><strong>${candidate.specialty || "-"}</strong></div>
           <div><span>Ubicacion</span><strong>${candidate.location || "-"}</strong></div>
-          <div><span>Telefono</span><strong>${candidate.phone || "-"}</strong></div>
+          <div><span>Telefono</span><strong>${EPPhone.display(candidate.phone) || "-"}</strong></div>
           <div><span>Email</span><strong>${candidate.email || "-"}</strong></div>
           <div><span>LinkedIn</span><strong>${candidate.linkedin || "-"}</strong></div>
           <div><span>CV</span><div style="display:flex;align-items:center;gap:7px">${
@@ -3344,7 +3349,7 @@ function openModal({ title, fields, values = {}, onSave }) {
   document.body.appendChild(modal);
   modal.querySelector("[data-save-modal]").addEventListener("click", () => {
     const data = Object.fromEntries(new FormData(modal.querySelector("form")).entries());
-    onSave(data);
+    try { onSave(data); } catch (error) { showToast(error.message); return; }
     saveState();
     modal.remove();
     render();

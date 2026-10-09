@@ -33,6 +33,7 @@
     status: "Estado",
     email: "Correo",
     phone: "Teléfono",
+    phoneCountry: "País del teléfono",
     notes: "Notas",
     location: "Ubicación",
     specialty: "Especialidad",
@@ -135,7 +136,10 @@
       "</p></article>"
     );
   }
+  function rootPhone(value) { return globalThis.EPPhone ? globalThis.EPPhone.display(value) : value; }
   function results(plan, result) {
+    if (!Array.isArray(result.items)) return "";
+    if (!result.items.length && !["search_records", "gmail_search"].includes(plan.name)) return "";
     const items = result.items || [],
       mail = plan.name === "gmail_search";
     return (
@@ -165,7 +169,7 @@
                 ? [item.from, item.date].filter(Boolean).join(" · ")
                 : [
                     item.scheduled_for,
-                    item.phone,
+                    rootPhone(item.phone),
                     item.specialty,
                     item.location,
                     stateLabel(item.status),

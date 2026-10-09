@@ -95,7 +95,7 @@ test("updates preserve unmentioned data, attachments, proposals and task/calenda
   await s.write("update_record", {
     entity: "candidates",
     id: c.id,
-    data: { phone: "123" },
+    data: { phone: "612345678" },
   });
   assert.equal(s.state.candidates[0].notes, "No borrar");
   assert.equal(s.state.candidates[0].files.cv.name, "cv.pdf");
