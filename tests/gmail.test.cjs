@@ -214,3 +214,15 @@ test("API checks Firebase signatures; writes require a user-bound prepared capab
     delete process.env.GOOGLE_CLIENT_SECRET;
   }
 });
+
+test('drafts include formatted HTML and a plain alternative while escaping HTML input', () => {
+  const raw = Buffer.from(gmail.mimeMessage({ to: ['eva@example.com'], subject: 'Prueba', body: 'Hola **Eva**,\n\nPrimera línea\nSegunda <script>alert(1)</script>' }), 'base64url').toString();
+  assert.match(raw, /multipart\/alternative/);
+  assert.match(raw, /text\/plain/);
+  const encoded = raw.split('Content-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n')[1].split('\r\n--')[0];
+  const html = Buffer.from(encoded, 'base64').toString();
+  assert.match(html, /<strong>Eva<\/strong>/);
+  assert.match(html, /Primera línea<br>Segunda/);
+  assert.match(html, /&lt;script&gt;/);
+  assert.doesNotMatch(html, /<script>/);
+});

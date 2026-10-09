@@ -561,3 +561,43 @@ test("external staging shows real mailbox preview and never grants write approva
   await assert.rejects(engine.execute(plan, approval), /Confirmación/);
   assert.equal(sent, 1);
 });
+
+test('editing a Gmail proposal stages fresh content and requires a new confirmation', async () => {
+  const staged = [], executed = [];
+  const s = setup({ gmail_create_draft: {
+    stage: async args => { staged.push(structuredClone(args)); return { review: { title: 'Borrador', data: args } }; },
+    execute: async args => { executed.push(structuredClone(args)); return { ok: true }; },
+  } });
+  let turn = 0;
+  const runtime = Runtime.create({
+    engine: s.engine, context: () => ({}), setBusy() {}, message() {}, review() {}, showResult() {}, finishReview() {},
+    fetch: async () => new Response(JSON.stringify({ response_id: 'edit-' + ++turn, text: '', calls: turn === 1 ? [{ call_id: 'draft', name: 'gmail_create_draft', arguments: JSON.stringify({ to: ['alba@example.com'], subject: 'Original', body: 'Original' }) }] : [] })),
+  });
+  await runtime.send('Prepará un borrador');
+  const oldId = runtime.pending.id;
+  await runtime.editDraft(oldId, { subject: 'Editado', body: 'Texto corregido\nGracias' });
+  assert.equal(executed.length, 0);
+  assert.equal(staged.length, 2);
+  assert.notEqual(runtime.pending.id, oldId);
+  await runtime.approve(oldId);
+  assert.equal(executed.length, 0);
+  await runtime.approve(runtime.pending.id);
+  assert.deepEqual(executed, [{ to: ['alba@example.com'], subject: 'Editado', body: 'Texto corregido\nGracias' }]);
+});
+
+test('a failed result card cannot report an already created Gmail draft as failed', async () => {
+  const s = setup({ gmail_create_draft: { execute: async () => ({ ok: true, draft_id: 'created', sent: false }) } });
+  let turn = 0;
+  const payloads = [];
+  const runtime = Runtime.create({
+    engine: s.engine, context: () => ({}), setBusy() {}, message() {}, review() {}, finishReview() {},
+    showResult() { throw Error('Broken rendering'); },
+    fetch: async (url, options) => {
+      payloads.push(JSON.parse(options.body));
+      return new Response(JSON.stringify({ response_id: 'result-' + ++turn, text: '', calls: turn === 1 ? [{ call_id: 'draft', name: 'gmail_create_draft', arguments: JSON.stringify({ to: ['alba@example.com'], subject: 'Hola', body: 'Hola' }) }] : [] }));
+    },
+  });
+  await runtime.send('Prepará un borrador');
+  await runtime.approve(runtime.pending.id);
+  assert.deepEqual(payloads[1].tool_outputs[0].output, { ok: true, draft_id: 'created', sent: false });
+});

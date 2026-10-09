@@ -1043,16 +1043,16 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/text-encoding.js?v=20261009-gmail-compact-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-gmail-compact-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-gmail-compact-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-gmail-compact-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-gmail-compact-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-gmail-compact-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-gmail-compact-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-gmail-compact-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-gmail-compact-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-gmail-compact-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-draft-edit-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -5408,7 +5408,8 @@ const agentRuntime=EPAgentRuntime.create({
     kittyStatus("Esperando tu confirmación",false);
     const resolve=(key,value,data)=>{const entity={candidate_id:'candidates',job_id:'jobs',client_id:'clients',id:data.entity}[key];if(entity){try{const row=hubActions.record(entity,value);return row.name||row.title||value;}catch{}}if(key==='entity')return EPAgentCatalog.entities[value]?.label||value;};
     document.querySelectorAll('.agent-approval').forEach(el=>el.dataset.kittyActive='false');
-    const html='<div class="agent-approval" data-kitty-active="true"><div class="agent-approval-title">Revisá lo que voy a hacer</div>'+reviews.map(r=>EPKittyPresentation.review(r,resolve)+(r.requiresConsent?'<label style="display:flex;gap:10px;font-size:12px;margin:12px 0"><input type="checkbox" class="kitty-consent"> Confirmo que este destinatario aceptó recibir mensajes de la empresa por WhatsApp.</label>':'')).join('')+'<div class="agent-approval-buttons"><button class="agent-approve" data-agent-approve="'+id+'">Confirmar acción</button><button class="agent-reject" data-agent-reject="'+id+'">Cancelar</button></div></div>';
+    const editable=agentRuntime.pending.plans.filter(p=>p.name==='gmail_create_draft').length===1;
+    const html='<div class="agent-approval" data-kitty-active="true"><div class="agent-approval-title">Revisá lo que voy a hacer</div>'+reviews.map(r=>EPKittyPresentation.review(r,resolve)+(r.requiresConsent?'<label style="display:flex;gap:10px;font-size:12px;margin:12px 0"><input type="checkbox" class="kitty-consent"> Confirmo que este destinatario aceptó recibir mensajes de la empresa por WhatsApp.</label>':'')).join('')+'<div class="agent-approval-buttons">'+(editable?'<button data-agent-edit="'+id+'">Editar</button>':'')+'<button class="agent-approve" data-agent-approve="'+id+'">Confirmar acción</button><button class="agent-reject" data-agent-reject="'+id+'">Cancelar</button></div></div>';
     agentAddMessage('assistant','',html);
   },
   showResult:(plan,result)=>{
@@ -5442,6 +5443,20 @@ function initAgent(){
   document.getElementById('agent-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();agentSend();}});
   document.getElementById('agent-messages').addEventListener('click',e=>{
     const record=e.target.closest('[data-kitty-record]');if(record){openDetail(record.dataset.kittyEntity,record.dataset.kittyRecord);return;}
+    const edit=e.target.closest('[data-agent-edit]'),saveEdit=e.target.closest('[data-agent-save-edit]'),cancelEdit=e.target.closest('[data-agent-cancel-edit]');
+    if(edit&&!edit.disabled){
+      const pending=agentRuntime.pending;
+      if(agentRuntime.busy||!pending||pending.id!==edit.dataset.agentEdit)return;
+      const draft=pending.plans.find(p=>p.name==='gmail_create_draft');
+      const card=edit.closest('.agent-approval');
+      if(card.querySelector('.kitty-draft-editor'))return;
+      const form=document.createElement('div');form.className='kitty-draft-editor';
+      form.innerHTML='<label style="display:block;margin:12px 0">Asunto<input class="kitty-edit-subject" style="display:block;width:100%;padding:10px;box-sizing:border-box"></label><label style="display:block;margin:12px 0">Mensaje<textarea class="kitty-edit-body" rows="10" style="display:block;width:100%;padding:10px;box-sizing:border-box;resize:vertical"></textarea></label><button data-agent-save-edit="'+pending.id+'">Guardar cambios y revisar</button> <button data-agent-cancel-edit>Volver sin cambios</button>';
+      form.querySelector('input').value=draft.args.subject;form.querySelector('textarea').value=draft.args.body;
+      card.querySelector('.agent-approval-buttons').hidden=true;card.append(form);form.querySelector('input').focus();return;
+    }
+    if(cancelEdit){const card=cancelEdit.closest('.agent-approval');if(agentRuntime.busy)return;card.querySelector('.kitty-draft-editor').remove();card.querySelector('.agent-approval-buttons').hidden=false;return;}
+    if(saveEdit&&!saveEdit.disabled){const form=saveEdit.closest('.kitty-draft-editor');agentRuntime.editDraft(saveEdit.dataset.agentSaveEdit,{subject:form.querySelector('input').value,body:form.querySelector('textarea').value});return;}
     const approve=e.target.closest('[data-agent-approve]'),reject=e.target.closest('[data-agent-reject]');
     if(approve&&!approve.disabled){const checks=[...approve.closest('.agent-approval').querySelectorAll('.kitty-consent')];if(checks.some(c=>!c.checked)){agentAddMessage('system','Marcá la confirmación de consentimiento antes de programar el WhatsApp.');return;}agentRuntime.approve(approve.dataset.agentApprove);}
     if(reject&&!reject.disabled)agentRuntime.reject(reject.dataset.agentReject);

@@ -80,7 +80,8 @@
                 : "Aplicando los cambios…",
         );
         const output = await env.engine.execute(plan, token);
-        env.showResult(plan, output);
+        try { env.showResult(plan, output); }
+        catch { env.message("system", "La acción se completó, pero no pude mostrar su comprobante."); }
         return { call_id: plan.call_id, output };
       } catch (e) {
         toolError = errorText(e);
@@ -187,6 +188,33 @@
         );
       } catch (e) {
         env.message("system", "No pude conectar con la IA: " + errorText(e));
+      } finally {
+        busy = false;
+        controls();
+      }
+    }
+    async function editDraft(id, changes) {
+      if (busy || !pending || pending.id !== id) return;
+      const current = pending;
+      const drafts = current.plans.filter(p => p.name === "gmail_create_draft");
+      if (drafts.length !== 1) return;
+      busy = true;
+      controls();
+      try {
+        const original = drafts[0];
+        const replacement = env.engine.prepare({
+          call_id: original.call_id,
+          name: original.name,
+          arguments: JSON.stringify({ ...original.args, subject: changes.subject, body: changes.body }),
+        });
+        await env.engine.stage?.(replacement);
+        env.finishReview?.();
+        pending = { ...current, id: String(++sequence),
+          plans: current.plans.map(p => p === original ? replacement : p),
+          snapshot: current.snapshot };
+        env.review(pending.id, pending.plans.filter(p => p.effect !== "read").map(p => env.engine.review?.(p) || p.review));
+      } catch (e) {
+        env.message("system", "No pude preparar la edición: " + errorText(e));
       } finally {
         busy = false;
         controls();
@@ -322,6 +350,7 @@
     return {
       send,
       approve,
+      editDraft,
       reject,
       request,
       get pending() {

@@ -675,7 +675,8 @@
       if (plan.effect !== "read") {
         const grant = approvals.get(token);
         grant.snapshot = snapshot();
-        env.refresh?.();
+        // A completed write must not become a reported failure if rendering fails.
+        try { env.refresh?.(); } catch (error) { console.error("Hub refresh failed after completed action", error); }
         grant.snapshot = snapshot();
       }
       return result;
