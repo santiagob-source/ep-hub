@@ -119,6 +119,8 @@
       required: "title",
       defaults: {
         title: "Nuevo item",
+        businessArea: "Expansion People",
+        year: 2026,
         jobId: "",
         candId: "",
         clientName: "",

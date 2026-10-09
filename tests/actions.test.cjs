@@ -612,3 +612,16 @@ test('new vacancies default to People while editing legacy vacancies preserves B
  const moved=s.hub.save('jobs','old',{businessArea:'Expansion People'});
  assert.equal(moved.businessArea,'Expansion People');assert.equal(moved.jobStatus,'Facturado');
 });
+
+test('forecast creation carries job area while legacy edits preserve Business and the year',()=>{
+ const s=setup();
+ s.state.jobs.push({id:'business-job',title:'Antigua',client:'',owner:'Santi',pipeline:[]});
+ const standalone=s.hub.save('forecast',null,{title:'People',month:'Enero'});
+ assert.equal(standalone.businessArea,'Expansion People');assert.equal(standalone.year,2026);
+ const linked=s.hub.save('forecast',null,{jobId:'business-job',month:'Febrero'});
+ assert.equal(linked.businessArea,'Expansion Business');
+ s.state.forecast.push({id:'old-forecast',title:'Histórica',month:'Enero',amount:1000,billed:false});
+ const edited=s.hub.save('forecast','old-forecast',{amount:1200});
+ assert.equal(edited.businessArea,'Expansion Business');assert.equal(edited.year,2026);
+ assert.throws(()=>s.hub.save('forecast',null,{year:2026.5}));
+});

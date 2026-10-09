@@ -500,6 +500,55 @@ const handler = require("../api/agent");
     assert.ok(await page.getByText('Mi día',{exact:true}).last().isVisible());
     await page.setViewportSize({width:390,height:844});
     await page.screenshot({path:'/tmp/midia-review.png',fullPage:true});
+    await page.evaluate(()=>{
+      delete window._jobAreaFilter;setView('jobs');
+    });
+    assert.equal(await page.locator('.workspace-tabs button').first().textContent(),'Expansion People');
+    assert.ok(await page.locator('[data-job-area="Expansion People"]').evaluate(el=>el.classList.contains('selected')));
+    assert.ok(await page.locator('[data-view="clients"] svg').count()>0);
+    await page.evaluate(()=>{
+      state.forecast=[{id:'legacy-fc',title:'Previsión histórica',month:'Enero',amount:1000,consultor:'Santi'}];
+      forecastContext={};setView('forecast');
+    });
+    assert.match(await page.locator('[data-fc-year="2026"]').textContent(),/0,00/);
+    await page.locator('[data-fc-area="Expansion Business"]').click();
+    assert.match(await page.locator('[data-fc-year="2026"]').textContent(),/1000,00|1.000,00/);
+    await page.locator('[data-fc-year="2026"]').click();
+    assert.equal(await page.locator('[data-fc-quarter]').count(),4);
+    await page.locator('[data-fc-quarter="Q1"]').click();
+    assert.equal(await page.locator('[data-fc-month]').count(),3);
+    await page.locator('[data-fc-month="Enero"]').click();
+    assert.ok(await page.getByText('Previsión histórica',{exact:true}).isVisible());
+    await page.locator('[data-fc-area="Expansion People"]').click();
+    await page.locator('[data-fc-year="2026"]').click();
+    await page.locator('[data-fc-quarter="Q1"]').click();
+    await page.locator('[data-fc-month="Enero"]').click();
+    assert.equal(await page.getByText('Previsión histórica',{exact:true}).count(),0);
+    await page.evaluate(()=>{
+      editForecast(null);
+    });
+    assert.equal(await page.locator('.modal [name=businessArea]').inputValue(),'Expansion People');
+    assert.equal(await page.locator('.modal [name=year]').inputValue(),'2026');
+    await page.locator('.modal [name=title]').fill('Nueva previsión People');
+    await page.locator('.modal [name=amount]').fill('250');
+    await page.locator('[data-save-fc]').click();
+    assert.ok(await page.getByText('Nueva previsión People',{exact:true}).isVisible());
+    await page.evaluate(()=>{
+      state.forecast.push({id:'year-2027',title:'Año siguiente',businessArea:'Expansion People',year:2027,month:'Enero',amount:999,consultor:'Santi'});
+      renderForecast();
+    });
+    assert.equal(await page.getByText('Año siguiente',{exact:true}).count(),0);
+    await page.setViewportSize({width:1440,height:1000});
+    await page.locator('[data-fc-back="months"]').click();
+    await page.screenshot({path:'/tmp/forecast-hierarchy.png',fullPage:true});
+    await page.evaluate(()=>{
+      state.forecast.push({id:'billing-2026',title:'Igual título',businessArea:'Expansion People',year:2026,month:'Enero',amount:100,consultor:'Santi'});
+      state.forecast.push({id:'billing-2027',title:'Igual título',businessArea:'Expansion People',year:2027,month:'Enero',amount:200,consultor:'Santi'});
+      fc_bill('billing-2026');fc_bill('billing-2027');
+    });
+    assert.equal(await page.evaluate(()=>state.placements.filter(p=>p.forecastId?.startsWith('billing-')).length),2);
+    await page.evaluate(()=>fc_unbill('billing-2026'));
+    assert.equal(await page.evaluate(()=>state.placements.filter(p=>p.forecastId==='billing-2027').length),1);
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",

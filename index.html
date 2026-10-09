@@ -1056,17 +1056,18 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/workspace.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/text-encoding.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-filter-click-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-filter-click-1"></script>
+    <script src="/public/agent/icons.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/workspace.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-forecast-areas-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1668,7 +1669,7 @@ function renderNav() {
           .map(
             (item) => `
             <button type="button" class="${item.id === currentView ? "active" : ""}" data-view="${item.id}">
-              <span class="icon">${item.icon}</span><span>${item.title}</span>
+              <span class="icon">${EPIcons.svg(item.id)}</span><span>${item.title}</span>
             </button>
           `,
           )
@@ -1685,7 +1686,7 @@ function setView(view) {
   const item = getAllNavItems().find((entry) => entry.id === view);
   title.textContent = item.title;
   eyebrow.textContent = item.group;
-  quickAdd.style.display = ["dashboard", "pomodoro", "reports", "assistant", "jobs", "clients", "candidates"].includes(view) ? "none" : "inline-flex";
+  quickAdd.style.display = ["dashboard", "pomodoro", "reports", "assistant", "jobs", "clients", "candidates", "forecast"].includes(view) ? "none" : "inline-flex";
   renderNav();
   render();
   recordNavigationState();
@@ -2152,7 +2153,7 @@ function editForecast(id) {
   var visibleMonths = forecastContext.month ? [forecastContext.month] :
     forecastContext.quarter ? quarters[forecastContext.quarter] : MONTHS;
   var record = (state.forecast||[]).find(function(f){return f.id===id;}) ||
-    {id:uid(), title:"", consultor:"Santi", month:forecastContext.month||MONTHS[new Date().getMonth()], amount:"", jobId:"", candId:"", billed:false, notas:""};
+    {id:uid(), title:"", businessArea:forecastContext.area==='Todos'?'Expansion People':forecastContext.area||'Expansion People', year:forecastContext.year||2026, consultor:"Santi", month:forecastContext.month||MONTHS[new Date().getMonth()], amount:"", jobId:"", candId:"", billed:false, notas:""};
 
   var conOpts = CONSULTORES.map(function(c){return "<option"+(record.consultor===c?" selected":"")+">"+c+"</option>";}).join("");
   var mOpts = visibleMonths.map(function(m){return "<option"+(record.month===m?" selected":"")+">"+m+"</option>";}).join("");
@@ -2184,11 +2185,13 @@ function editForecast(id) {
   modal.className = "modal show";
   modal.innerHTML =
     "<div class='modal-card'>" +
-      "<div class='panel-header'><h2 class='panel-title'>"+(id&&(state.forecast||[]).find(function(f){return f.id===id;})?"Editar forecast":"Añadir forecast")+"</h2>" +
+      "<div class='panel-header'><h2 class='panel-title'>"+(id&&(state.forecast||[]).find(function(f){return f.id===id;})?"Editar previsión":"Añadir previsión")+"</h2>" +
         "<button class='icon-button' type='button' data-close-modal>&times;</button></div>" +
       "<form class='panel-body form-grid'>" +
         "<div class='field'><label>Titulo</label><input name='title' value='"+(record.title||"").replace(/'/g,"&#39;")+"' placeholder='Nombre del job'/></div>" +
         "<div class='field'><label>Consultor</label><select name='consultor'>"+conOpts+"</select></div>" +
+        "<div class='field'><label>Área</label><select name='businessArea'>"+["Expansion People","Expansion Business"].map(a=>"<option"+(EPWorkspace.forecastArea(record)===a?" selected":"")+">"+a+"</option>").join("")+"</select></div>" +
+        "<div class='field'><label>Año</label><input name='year' type='number' min='2026' max='2100' value='"+EPWorkspace.year(record)+"'/></div>" +
         "<div class='field'><label>Mes</label><select name='month'>"+mOpts+"</select></div>" +
         "<div class='field'><label>Importe</label><input name='amount' type='number' value='"+(record.amount||"")+"'/></div>" +
         "<div class='field full'><label>Cliente</label><select name='clientName' id='fc-client-"+record.id+"' onchange='fc_filterJobs(this,\"fc-job-"+record.id+"\",\"fc-cand-"+record.id+"\")'>" + clientOpts + "</select></div>" +
@@ -2205,16 +2208,15 @@ function editForecast(id) {
   modal.querySelector("[data-save-fc]").addEventListener("click", function() {
     var form = modal.querySelector("form");
     var data = Object.fromEntries(new FormData(form).entries());
-    var updated = Object.assign({}, record, data, {amount: parseFloat(data.amount||0), billed: record.billed||false});
-    if (!state.forecast) state.forecast = [];
-    var idx = state.forecast.findIndex(function(f){return f.id===id;});
-    if (idx>=0) state.forecast[idx]=updated; else state.forecast.push(updated);
+    var updated;
+    try { updated=hubActions.save("forecast",id||null,{...data,amount:parseFloat(data.amount||0),year:Number(data.year)}); }
+    catch(error){showToast(error.message);return;}
     if (updated.jobId && updated.jobId!=="otros") {
       var job = state.jobs.find(function(j){return j.id===updated.jobId;});
       if (job && !job.forecastMonth) job.forecastMonth = updated.month;
     }
     saveState(); modal.remove(); renderForecast();
-    showToast("Forecast guardado");
+    showToast("Previsión guardada");
   });
   modal.addEventListener("click", function(e){
     if (e.target.matches("[data-close-modal]")||e.target===modal) modal.remove();
@@ -2250,37 +2252,25 @@ function fc_filterCands(jobSel, candSelId) {
 
 
 function renderForecast() {
-  if (!forecastContext.quarter) {
-    var qCards = Object.entries(quarters).map(function(e) {
-      var q=e[0]; var months=e[1];
-      var items = (state.forecast||[]).filter(function(f){return months.includes(f.month);});
-      var total = items.reduce(function(s,f){return s+(parseFloat(f.amount)||0);}, 0);
-      return "<button class='quarter-card' type='button' data-fc-quarter='"+q+"'><span>"+q+"</span><strong>"+money(total)+"</strong><small>"+months.join(" \u00b7 ")+" \u00b7 "+items.length+" registros</small></button>";
-    }).join("");
-    app.innerHTML =
-      "<div class='toolbar'><p style='margin:0;color:var(--muted)'>Forecast por trimestre.</p>" +
-      "<button class='primary-button' type='button' onclick='editForecast(null)'>+ Agregar forecast</button></div>" +
-      renderBillingDashboard((state.forecast||[]).map(function(f){return {consultant:f.consultor,amount:f.amount,month:f.month};})) +
-      "<div class='quarter-grid'>"+qCards+"</div>";
-    return;
+  forecastContext.area ||= 'Expansion People';
+  const area=forecastContext.area;
+  const records=(state.forecast||[]).filter(f=>area==='Todos'||EPWorkspace.forecastArea(f)===area);
+  const sum=items=>items.reduce((total,f)=>total+(Number(f.amount)||0),0);
+  const tabs='<div class="workspace-tabs">'+['Expansion People','Expansion Business','Todos'].map(a=>'<button class="ghost-button '+(a===area?'selected':'')+'" data-fc-area="'+a+'">'+a+'</button>').join('')+'</div>';
+  const heading='<p class="workspace-hint">'+area+(forecastContext.year?' · '+forecastContext.year:'')+(forecastContext.quarter?' · '+forecastContext.quarter:'')+(forecastContext.month?' · '+forecastContext.month:'')+'</p>';
+  const add='<button class="primary-button" onclick="editForecast(null)">+ Nueva previsión</button>';
+  if(!forecastContext.year){
+    const years=[...new Set([2026,...records.map(EPWorkspace.year)])].sort((a,b)=>a-b);
+    app.innerHTML=tabs+heading+'<div class="toolbar"><p>Elegí el año para ver sus trimestres.</p>'+add+'</div><div class="quarter-grid">'+years.map(year=>{const items=records.filter(f=>EPWorkspace.year(f)===year);return '<button class="quarter-card" data-fc-year="'+year+'"><span>'+year+'</span><strong>'+money(sum(items))+'</strong><small>'+items.length+' registros</small></button>';}).join('')+'</div>';return;
   }
-  if (!forecastContext.month) {
-    var months = quarters[forecastContext.quarter];
-    var mCards = months.map(function(month) {
-      var items = (state.forecast||[]).filter(function(f){return f.month===month;});
-      var total = items.reduce(function(s,f){return s+(parseFloat(f.amount)||0);}, 0);
-      var billed = items.filter(function(f){return f.billed;}).length;
-      return "<button class='month-card' type='button' data-fc-month='"+month+"'><span>"+month+"</span><strong>"+money(total)+"</strong><small>"+billed+"/"+items.length+" facturados</small></button>";
-    }).join("");
-    var qItems = (state.forecast||[]).filter(function(f){return months.includes(f.month);});
-    app.innerHTML =
-      "<div class='toolbar'><button class='ghost-button' type='button' data-fc-back='quarters'>\u2190 Trimestres</button>" +
-      "<button class='primary-button' type='button' onclick='editForecast(null)'>+ Agregar forecast</button></div>" +
-      renderBillingDashboard(qItems.map(function(f){return {consultant:f.consultor,amount:f.amount,month:f.month};})) +
-      "<div class='month-grid'>"+mCards+"</div>";
-    return;
+  const yearRecords=records.filter(f=>EPWorkspace.year(f)===forecastContext.year);
+  if(!forecastContext.quarter){
+    app.innerHTML=tabs+heading+'<div class="toolbar"><button class="ghost-button" data-fc-back="years">← Años</button>'+add+'</div><div class="quarter-grid">'+Object.entries(quarters).map(([q,months])=>{const items=yearRecords.filter(f=>months.includes(f.month));return '<button class="quarter-card" data-fc-quarter="'+q+'"><span>'+q+'</span><strong>'+money(sum(items))+'</strong><small>'+months.join(' · ')+'</small></button>';}).join('')+'</div>';return;
   }
-  var items = (state.forecast||[]).filter(function(f){return f.month===forecastContext.month;});
+  if(!forecastContext.month){
+    app.innerHTML=tabs+heading+'<div class="toolbar"><button class="ghost-button" data-fc-back="quarters">← Trimestres</button>'+add+'</div><div class="month-grid">'+quarters[forecastContext.quarter].map(month=>{const items=yearRecords.filter(f=>f.month===month);return '<button class="month-card" data-fc-month="'+month+'"><span>'+month+'</span><strong>'+money(sum(items))+'</strong><small>'+items.filter(f=>f.billed).length+'/'+items.length+' facturados</small></button>';}).join('')+'</div>';return;
+  }
+  var items=yearRecords.filter(f=>f.month===forecastContext.month);
   var rows = items.map(function(f) {
     var job = (f.jobId && f.jobId!=="otros") ? state.jobs.find(function(j){return j.id===f.jobId;}) : null;
     var cand = f.candId ? state.candidates.find(function(c){return c.id===f.candId;}) : null;
@@ -2300,9 +2290,9 @@ function renderForecast() {
       "<td>"+billBtn+"</td>" +
       "<td><div class='row-actions'>"+editBtn+delBtn+"</div></td>" +
     "</tr>";
-  }).join("") || "<tr><td colspan='6' style='text-align:center;color:#94A3B8;padding:22px'>Sin forecast en "+forecastContext.month+".</td></tr>";
+  }).join("") || "<tr><td colspan='6' style='text-align:center;color:#94A3B8;padding:22px'>Sin previsiones en "+forecastContext.month+".</td></tr>";
   var total = items.reduce(function(s,f){return s+(parseFloat(f.amount)||0);}, 0);
-  app.innerHTML =
+  app.innerHTML = tabs+heading+
     "<div class='toolbar'>" +
       "<div style='display:flex;gap:10px;align-items:center'>" +
         "<button class='ghost-button' type='button' data-fc-back='months'>\u2190 Meses</button>" +
@@ -2310,22 +2300,22 @@ function renderForecast() {
       "</div>" +
       "<button class='primary-button' type='button' onclick='editForecast(null)'>+ Agregar</button>" +
     "</div>" +
-    renderBillingDashboard(items.map(function(f){return {consultant:f.consultor,amount:f.amount,month:f.month};})) +
+    "<p class='workspace-hint'>Total previsto: "+money(total)+"</p>" +
     "<div class='table-wrap'><table>" +
-      "<thead><tr><th>Consultor</th><th>Importe</th><th>Job / Titulo</th><th>Candidato</th><th>Estado</th><th></th></tr></thead>" +
+      "<thead><tr><th>Consultor</th><th>Importe</th><th>Vacante / Título</th><th>Candidato</th><th>Estado</th><th></th></tr></thead>" +
       "<tbody>"+rows+"</tbody>" +
     "</table></div>";
 }
 
 
 
-var forecastContext = {};
+var forecastContext = {area:'Expansion People',year:null,quarter:null,month:null};
 
 function fc_addItem() {
   if (!state.forecast) state.forecast = [];
   var MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
   var month = forecastContext.month || MONTHS[new Date().getMonth()];
-  hubActions.save("forecast",null,{title:"Nuevo item",month});
+  hubActions.save("forecast",null,{title:"Nuevo item",month,businessArea:forecastContext.area==='Todos'?'Expansion People':forecastContext.area||'Expansion People',year:forecastContext.year||2026});
   renderForecast();
 }
 
@@ -2347,8 +2337,8 @@ function fc_bill(id) {
   f.billed=true;
   var inv=parseFloat(f.amount)||0;
   if(inv>0){
-    var exists=state.placements.find(function(p){return p.job===f.title&&p.month===f.month;});
-    if(!exists) state.placements.push({id:uid(),consultant:f.consultor,month:f.month,amount:inv,client:f.clientName||"",job:f.title,date:new Date().toISOString().split("T")[0]});
+    var exists=state.placements.find(function(p){return p.forecastId===f.id || (!p.forecastId&&p.job===f.title&&p.month===f.month&&EPWorkspace.year(p)===EPWorkspace.year(f)&&EPWorkspace.forecastArea(p)===EPWorkspace.forecastArea(f));});
+    if(!exists) state.placements.push({id:uid(),forecastId:f.id,businessArea:EPWorkspace.forecastArea(f),year:EPWorkspace.year(f),consultant:f.consultor,month:f.month,amount:inv,client:f.clientName||"",job:f.title,date:new Date().toISOString().split("T")[0]});
   }
   if(f.jobId && f.jobId!=="otros"){
     var job=state.jobs.find(function(j){return j.id===f.jobId;});
@@ -2369,7 +2359,7 @@ function fc_unbill(id) {
   f.billed=false;
   // Also remove placement created from this forecast item
   state.placements = state.placements.filter(function(p){
-    return !(p.job===f.title && p.month===f.month);
+    return !(p.forecastId===f.id || (!p.forecastId&&p.job===f.title&&p.month===f.month&&EPWorkspace.year(p)===EPWorkspace.year(f)&&EPWorkspace.forecastArea(p)===EPWorkspace.forecastArea(f)));
   });
   // Revert job status
   if(f.jobId && f.jobId!=="otros"){
@@ -2671,11 +2661,11 @@ function renderRow(key, row) {
 }
 
 function renderJobs() {
-  const area=window._jobAreaFilter||'Todos', sf=window._jobStatusFilter||'Activos';
+  const area=window._jobAreaFilter||'Expansion People', sf=window._jobStatusFilter||'Activos';
   const owner=window._jobOwnerFilter||'',client=window._jobClientFilter||'';
   const jobs=state.jobs.filter(j=>(area==='Todos'||EPWorkspace.area(j)===area)&&(sf==='Todos'?true:sf==='Archivo'?!EPWorkspace.active(j):sf==='Activos'?EPWorkspace.active(j):EPWorkspace.status(j)===sf)&&( !owner||j.owner===owner)&&(!client||j.client===client));
   const options=(values,value,label)=>'<option value="">'+label+'</option>'+values.filter(Boolean).map(v=>'<option value="'+agentSafe(v)+'" '+(v===value?'selected':'')+'>'+agentSafe(v)+'</option>').join('');
-  app.innerHTML='<div class="workspace-tabs">'+['Todos','Expansion People','Expansion Business'].map(a=>'<button class="ghost-button '+(area===a?'selected':'')+'" data-job-area="'+a+'">'+a+'</button>').join('')+'</div><div class="toolbar"><input class="search" type="search" placeholder="Buscar vacante o cliente…" data-search="jobs"><select class="search" data-job-status><option value="Activos" '+(sf==='Activos'?'selected':'')+'>Activas</option><option value="Archivo" '+(sf==='Archivo'?'selected':'')+'>Archivo</option><option value="Todos" '+(sf==='Todos'?'selected':'')+'>Todos los estados</option>'+EPWorkspace.states.map(s=>'<option value="'+s+'" '+(sf===s?'selected':'')+'>'+EPWorkspace.labels[s]+'</option>').join('')+'</select><select class="search" aria-label="Responsable" data-job-owner>'+options([...new Set(state.jobs.map(j=>j.owner))],owner,'Todos los responsables')+'</select><select class="search" aria-label="Cliente" data-job-client>'+options([...new Set(state.jobs.map(j=>j.client))],client,'Todos los clientes')+'</select><button class="primary-button" data-add-job>+ Nueva vacante</button></div><p class="workspace-hint">'+jobs.length+' vacantes · Los nuevos procesos se crean en Expansion People.</p><div class="table-wrap"><table><thead><tr><th>Vacante / área</th><th>Cliente</th><th>Responsable</th><th>Estado</th><th>Candidatos</th><th>Pendiente</th><th></th></tr></thead><tbody>'+jobs.map(j=>{
+  app.innerHTML='<div class="workspace-tabs">'+['Expansion People','Expansion Business','Todos'].map(a=>'<button class="ghost-button '+(area===a?'selected':'')+'" data-job-area="'+a+'">'+a+'</button>').join('')+'</div><div class="toolbar"><input class="search" type="search" placeholder="Buscar vacante o cliente…" data-search="jobs"><select class="search" data-job-status><option value="Activos" '+(sf==='Activos'?'selected':'')+'>Activas</option><option value="Archivo" '+(sf==='Archivo'?'selected':'')+'>Archivo</option><option value="Todos" '+(sf==='Todos'?'selected':'')+'>Todos los estados</option>'+EPWorkspace.states.map(s=>'<option value="'+s+'" '+(sf===s?'selected':'')+'>'+EPWorkspace.labels[s]+'</option>').join('')+'</select><select class="search" aria-label="Responsable" data-job-owner>'+options([...new Set(state.jobs.map(j=>j.owner))],owner,'Todos los responsables')+'</select><select class="search" aria-label="Cliente" data-job-client>'+options([...new Set(state.jobs.map(j=>j.client))],client,'Todos los clientes')+'</select><button class="primary-button" data-add-job>+ Nueva vacante</button></div><p class="workspace-hint">'+jobs.length+' vacantes · Los nuevos procesos se crean en Expansion People.</p><div class="table-wrap"><table><thead><tr><th>Vacante / área</th><th>Cliente</th><th>Responsable</th><th>Estado</th><th>Candidatos</th><th>Pendiente</th><th></th></tr></thead><tbody>'+jobs.map(j=>{
     const status=EPWorkspace.status(j), pipeline=j.pipeline||[];
     const todo=state.tasks.filter(t=>!t.done&&normalize(t.linkedTo)===normalize(j.title));
     const next=!EPWorkspace.active(j)?'Archivada':todo[0]?.title||(!pipeline.length?'Añadir candidatos':pipeline.some(p=>p.stage==='Oferta')?'Revisar oferta':pipeline.some(p=>p.stage.startsWith('Entrevista'))?'Revisar entrevistas':'Revisar candidatos');
@@ -2834,10 +2824,10 @@ function jd_month(jobId,type,month){
     j.forecastMonth=month;
     // Auto-add to state.forecast if not already there
     if(!state.forecast) state.forecast=[];
-    var fcExists=state.forecast.find(function(f){return f.jobId===jobId&&f.month===month;});
+    var fcExists=state.forecast.find(function(f){return f.jobId===jobId&&f.month===month&&EPWorkspace.year(f)===2026&&EPWorkspace.forecastArea(f)===EPWorkspace.area(j);});
     if(!fcExists){
       state.forecast.push({
-        id:uid(), title:j.title, jobId:jobId, clientName:j.client,
+        id:uid(), title:j.title, jobId:jobId, clientName:j.client, businessArea:EPWorkspace.area(j), year:2026,
         consultor:j.owner||"Santi", amount:inv, month:month,
         billed:false, notas:""
       });
@@ -3723,12 +3713,16 @@ document.addEventListener("click", (event) => {
   const jobFilter = event.target.closest("[data-job-filter]");
   if (jobFilter) { window._jobStatusFilter = jobFilter.dataset.jobFilter; renderJobs(); return; }
 
+  const fcArea=event.target.closest('[data-fc-area]');
+  if(fcArea){forecastContext={area:fcArea.dataset.fcArea,year:null,quarter:null,month:null};renderForecast();return;}
+  const fcYear=event.target.closest('[data-fc-year]');
+  if(fcYear){forecastContext.year=Number(fcYear.dataset.fcYear);forecastContext.quarter=null;forecastContext.month=null;renderForecast();return;}
     var fcQ = event.target.closest("[data-fc-quarter]");
   if (fcQ) { forecastContext.quarter = fcQ.dataset.fcQuarter; forecastContext.month = null; renderForecast(); return; }
   var fcM = event.target.closest("[data-fc-month]");
   if (fcM) { forecastContext.month = fcM.dataset.fcMonth; renderForecast(); return; }
   var fcBk = event.target.closest("[data-fc-back]");
-  if (fcBk) { if(fcBk.dataset.fcBack==="quarters"){forecastContext.quarter=null;forecastContext.month=null;}else{forecastContext.month=null;} renderForecast(); return; }
+  if (fcBk) { if(fcBk.dataset.fcBack==="years"){forecastContext.year=null;forecastContext.quarter=null;forecastContext.month=null;}else if(fcBk.dataset.fcBack==="quarters"){forecastContext.quarter=null;forecastContext.month=null;}else{forecastContext.month=null;} renderForecast(); return; }
   var fcAd = event.target.closest("[data-fc-add]");
   if (fcAd) { fc_addItem(); return; }
 

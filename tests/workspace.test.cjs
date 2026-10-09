@@ -14,3 +14,12 @@ test('client completeness distinguishes operational and fiscal data and names mi
  assert.ok(W.missing(c).billing.some(([key])=>key==='cif'));
  assert.equal(W.missing(c).billing.length,5);
 });
+
+test('legacy forecasts belong to Business in 2026 and explicit years and areas stay independent',()=>{
+ const legacy={title:'Histórica',amount:1000,month:'Enero'};
+ assert.equal(W.forecastArea(legacy),'Expansion Business');
+ assert.equal(W.year(legacy),2026);
+ assert.equal(W.forecastArea({businessArea:'Expansion People'}),'Expansion People');
+ assert.equal(W.year({year:2027}),2027);
+ assert.deepEqual(legacy,{title:'Histórica',amount:1000,month:'Enero'});
+});

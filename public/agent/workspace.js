@@ -9,5 +9,7 @@
     contact:[['contact','Persona de contacto'],['phone','Teléfono'],['email','Email']].filter(([k])=>absent(k)),
     billing:[['razonSocial','Razón social'],['cif','CIF'],['dirFac','Dirección fiscal'],['emailFac','Email de facturación'],['contactFac','Contacto de facturación']].filter(([k])=>absent(k))
   };}
-  return {states,labels,colors,status,area,active,missing};
+  function year(record){return Number(record.year)||2026;}
+  function forecastArea(record){return record.businessArea||'Expansion Business';}
+  return {states,labels,colors,status,area,active,missing,year,forecastArea};
 });

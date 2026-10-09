@@ -300,6 +300,10 @@
             : 0;
       }
       if (entity === "forecast") {
+        const linked = updated.jobId && updated.jobId !== "otros" ? record("jobs", updated.jobId) : null;
+        updated.businessArea = data.businessArea || existing?.businessArea || (existing ? "Expansion Business" : linked ? linked.businessArea || "Expansion Business" : "Expansion People");
+        updated.year = Number(data.year || existing?.year || 2026);
+        if (!["Expansion People", "Expansion Business"].includes(updated.businessArea) || !Number.isInteger(updated.year) || updated.year < 2026 || updated.year > 2100) throw Error("Área o año de previsión inválidos");
         updated.billed = existing?.billed || false;
         if (updated.jobId && updated.jobId !== "otros") {
           const job = record("jobs", updated.jobId);
