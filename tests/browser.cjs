@@ -606,6 +606,17 @@ const handler = require("../api/agent");
     assert.deepEqual(order,['En proceso','Abierto','Standby','Placement','Cerrado']);
     await page.evaluate(()=>{state.candidates=[{id:'sort-idle',name:'A sin actividad',status:'CV Recibido'},{id:'sort-active',name:'Z activo',status:'CV Recibido'}];activeFilters.candidates='Todos';activeFilters.specialty='Todas';setView('candidates');});
     assert.deepEqual(await page.locator('.directory-card h2').allTextContents(),['Z activo','A sin actividad']);
+    await page.evaluate(()=>{
+      document.getElementById('agent-panel').classList.remove('open');
+      state.candidates=['Oferta','Placement','En proceso','Standby','Cerrado','Descartado'].map((status,i)=>({id:'color-'+i,name:'Ejemplo '+status,status,specialty:'Medicina',notes:'Vista de prueba'}));setView('candidates');
+    });
+    const badgeColor=label=>page.locator('.directory-card .status-badge').filter({hasText:new RegExp('^'+label+'$')}).evaluate(el=>({color:getComputedStyle(el).color,background:getComputedStyle(el).backgroundColor}));
+    assert.deepEqual(await badgeColor('Oferta'),{color:'rgb(4, 120, 87)',background:'rgb(209, 250, 229)'});
+    assert.deepEqual(await badgeColor('Placement'),{color:'rgb(22, 101, 52)',background:'rgb(220, 252, 231)'});
+    assert.equal((await badgeColor('En proceso')).color,'rgb(29, 78, 216)');
+    assert.equal((await badgeColor('Standby')).background,'rgb(254, 243, 199)');
+    assert.equal((await badgeColor('Cerrado')).background,'rgb(241, 245, 249)');
+    await page.screenshot({path:'/tmp/status-colors.png',fullPage:true});
     await page.evaluate(()=>setView('metricas'));
     const navLabels=await page.locator('#nav .nav-label').allTextContents();
     assert.ok(navLabels.indexOf('Métricas')<navLabels.indexOf('Planificación'));

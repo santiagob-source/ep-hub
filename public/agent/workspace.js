@@ -1,7 +1,19 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.EPWorkspace=factory();})(globalThis,function(){
   const states=['En proceso','Abierto','Standby','Placement','Cerrado'];
   const labels=Object.fromEntries(states.map(s=>[s,s]));
-  const colors={Abierto:'#2563eb','En proceso':'#7c3aed',Placement:'#15803d',Standby:'#b45309',Cerrado:'#64748b'};
+  const palette={sky:{background:'#e0f2fe',color:'#075985'},blue:{background:'#dbeafe',color:'#1d4ed8'},offer:{background:'#d1fae5',color:'#047857'},green:{background:'#dcfce7',color:'#166534'},yellow:{background:'#fef3c7',color:'#92400e'},red:{background:'#fee2e2',color:'#991b1b'},neutral:{background:'#f1f5f9',color:'#475569'}};
+  function tone(status){
+    const value=String(status||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+    if(value==='oferta')return 'offer';
+    if(['placement','activo','cubierto','facturado'].includes(value))return 'green';
+    if(['standby','pausado','en pausa','volver a contactar','media'].includes(value))return 'yellow';
+    if(['descartado','rechazado','alta'].includes(value))return 'red';
+    if(['en proceso','cv enviado','llamada','contactado','entrevista','entrevista c/c'].includes(value))return 'blue';
+    if(['abierto','cv recibido','nuevo','busqueda'].includes(value))return 'sky';
+    return 'neutral';
+  }
+  function statusPalette(status){return palette[tone(status)];}
+  const colors=Object.fromEntries(states.map(s=>[s,statusPalette(s).color]));
   function candidates(job){return (job.pipeline||[]).filter(p=>!['Rechazado','No presentado','Placement'].includes(p.label)&&(p.candidateId||String(p.name||'').trim()));}
   function status(job){
     const value=job.processStatus||job.jobStatus||job.status||'Abierto';
@@ -46,5 +58,5 @@
     }).filter(r=>r.count<3||r.gaps.length).sort((a,b)=>a.count-b.count);
     return {clients,jobs};
   }
-  return {states,labels,colors,candidates,status,area,active,sortJobs,sortCandidates,candidateActivity,missing,year,forecastArea,audit};
+  return {states,labels,colors,palette,tone,statusPalette,candidates,status,area,active,sortJobs,sortCandidates,candidateActivity,missing,year,forecastArea,audit};
 });

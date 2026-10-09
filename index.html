@@ -1056,18 +1056,18 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><button id="agent-attach" class="ghost-button" type="button">📎 Adjuntar</button><input id="agent-file" type="file" accept="application/pdf,image/png,image/jpeg" hidden><span id="agent-file-name" style="font-size:12px"></span><button id="agent-file-remove" type="button" class="ghost-button" hidden>Quitar</button></div><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/workspace.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/text-encoding.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/documents.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-activity-order-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/workspace.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/documents.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-status-colors-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -2025,14 +2025,10 @@ function matchesDirectoryFilter(key, item, filter) {
 }
 
 function jobStatusColor(s){return EPWorkspace.colors[EPWorkspace.status({jobStatus:s})];}
-function statusClass(status) {
-  const value = (status || "").toLowerCase();
-  if (["pausado", "media", "contactado", "volver a contactar"].includes(value)) return "yellow";
-  if (["cerrado", "cancelado"].includes(value)) return "neutral";
-  if (["descartado", "alta"].includes(value)) return "red";
-  if (["activo", "placement"].includes(value)) return "green";
-  return "";
-}
+function statusClass(status) {return EPWorkspace.tone(status);}
+const semanticStatusColors=document.createElement('style');
+semanticStatusColors.textContent=Object.entries(EPWorkspace.palette).map(([tone,p])=>'.status-badge.'+tone+'{background:'+p.background+';color:'+p.color+'}').join('');
+document.head.appendChild(semanticStatusColors);
 
 function clientMissingHtml(client){
   const m=EPWorkspace.missing(client);
@@ -2043,7 +2039,7 @@ function renderDirectoryCard(key, item, config) {
   const detailType = key === "clients" ? "client" : "candidate";
   return `
     <article class="directory-card" data-card="${item.id}" data-open-detail="${detailType}:${item.id}">
-      <div class="card-accent"></div>
+      <div class="card-accent" style="background:${EPWorkspace.statusPalette(status).color}"></div>
       <div class="directory-card-head">
         <h2>${item.name}</h2>
         <span class="status-badge ${statusClass(status)}">${status}</span>
@@ -2665,7 +2661,7 @@ function renderJobs() {
     const status=EPWorkspace.status(j), pipeline=j.pipeline||[];
     const todo=state.tasks.filter(t=>!t.done&&normalize(t.linkedTo)===normalize(j.title));
     const next=!EPWorkspace.active(j)?'Archivado':todo[0]?.title||(!pipeline.length?'Añadir candidatos':pipeline.some(p=>p.stage==='Oferta')?'Revisar oferta':pipeline.some(p=>p.stage.startsWith('Entrevista'))?'Revisar entrevistas':'Revisar candidatos');
-    return '<tr class="job-panel" data-open-detail="job:'+agentSafe(j.id)+'"><td><strong>'+agentSafe(j.title)+'</strong><small class="workspace-sub">'+EPWorkspace.area(j)+'</small></td><td>'+agentSafe(j.client||'Sin cliente')+'</td><td>'+agentSafe(j.owner||'Sin responsable')+'</td><td><span class="status-badge" style="color:'+EPWorkspace.colors[status]+'">'+EPWorkspace.labels[status]+'</span><small class="workspace-sub">'+(j.jobStatus==='Facturado'?'Facturada':'')+'</small></td><td>'+pipeline.filter(p=>!['Rechazado','No presentado'].includes(p.label)).length+'</td><td>'+agentSafe(next)+'</td><td><button class="ghost-button" data-edit-job="'+agentSafe(j.id)+'">Editar</button></td></tr>';
+    return '<tr class="job-panel" data-open-detail="job:'+agentSafe(j.id)+'"><td><strong>'+agentSafe(j.title)+'</strong><small class="workspace-sub">'+EPWorkspace.area(j)+'</small></td><td>'+agentSafe(j.client||'Sin cliente')+'</td><td>'+agentSafe(j.owner||'Sin responsable')+'</td><td><span class="status-badge '+statusClass(status)+'">'+EPWorkspace.labels[status]+'</span><small class="workspace-sub">'+(j.jobStatus==='Facturado'?'Facturada':'')+'</small></td><td>'+pipeline.filter(p=>!['Rechazado','No presentado'].includes(p.label)).length+'</td><td>'+agentSafe(next)+'</td><td><button class="ghost-button" data-edit-job="'+agentSafe(j.id)+'">Editar</button></td></tr>';
   }).join('')+(jobs.length?'':'<tr><td colspan="7">No hay jobs con estos filtros.</td></tr>')+'</tbody></table></div>';
 }
 
@@ -2676,7 +2672,7 @@ function renderJobDetail(id) {
   var stages = ["Busqueda","Contactado","Entrevista","Entrevista C/C","Oferta"];
   var months = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
   var JOB_STATUSES = EPWorkspace.states;
-  var LABELS = {"En proceso":["#DCFCE7","#166534"],"Placement":["#DBEAFE","#1E40AF"],"No presentado":["#F1F5F9","#64748B"],"Rechazado":["#FEE2E2","#991B1B"]};
+  var LABELS = Object.fromEntries(["En proceso","Placement","No presentado","Rechazado"].map(label=>{const p=EPWorkspace.statusPalette(label);return [label,[p.background,p.color]];}));
   var color = EPWorkspace.colors[EPWorkspace.status(job)];
   var client = state.clients.find(function(c){return normalize(c.name)===normalize(job.client);});
   var fee = parseFloat(job.feePercent||0);
@@ -2716,12 +2712,12 @@ function renderJobDetail(id) {
       "</div>";
     }).join("") || "<div style='text-align:center;padding:16px 0;color:#CBD5E1;font-size:11px'>Sin candidatos</div>";
 
-    return "<div style='background:#F8FAFD;border:1.5px solid #E2E8F0;border-radius:11px;padding:9px;min-height:160px'" +
+    return "<div style='background:#F8FAFD;border:1.5px solid #E2E8F0;border-top:3px solid "+EPWorkspace.statusPalette(stage).color+";border-radius:11px;padding:9px;min-height:160px'" +
       " ondragover='event.preventDefault();this.style.background=\"#EFF6FF\"'" +
       " ondragleave='this.style.background=\"#F8FAFD\"'" +
       " ondrop='jd_drop(event,\"" + id + "\",\"" + stage + "\")'>" +
       "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:7px'>" +
-        "<h3 style='font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#64748B;margin:0'>" + stage + "</h3>" +
+        "<h3 style='font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:"+EPWorkspace.statusPalette(stage).color+";margin:0'>" + stage + "</h3>" +
         "<button type='button' data-add-pipeline='" + id + ":" + stage + "' style='width:20px;height:20px;border-radius:50%;border:1.5px dashed #CBD5E1;background:transparent;cursor:pointer;color:#94A3B8;font-size:13px;display:flex;align-items:center;justify-content:center'>+</button>" +
       "</div>" + cards + "</div>";
   }).join("");
@@ -5240,7 +5236,7 @@ function renderMetricas() {
     {label:"Jobs activas", value:openJobs, sub:"de "+totalJobs+" totales", color:"#2563EB"},
     {label:"En pipeline", value:cands_active, sub:"participaciones en procesos", color:"#7C3AED"},
     {label:"Entrevistas activas", value:entrevistas, sub:"en proceso", color:"#0891B2"},
-    {label:"Ofertas activas", value:ofertas, sub:"pendientes", color:"#D97706"},
+    {label:"Ofertas activas", value:ofertas, sub:"pendientes", color:EPWorkspace.statusPalette("Oferta").color},
     {label:"Placements este mes", value:placements_month, sub:money(revenue_month), color:"#059669"},
     {label:"Placements esta semana", value:placements_week, sub:"ultimos 7 dias", color:"#16A34A"},
     {label:"Forecast del mes", value:money(forecast_month), sub:"previsto facturar", color:"#2563EB", isMoney:true},
@@ -5277,7 +5273,7 @@ function renderMetricas() {
           var pct = cands_active > 0 ? Math.round(cnt/cands_active*100) : 0;
           return "<div style='margin-bottom:10px'>" +
             "<div style='display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:3px'><span>"+stage+"</span><span>"+cnt+"</span></div>" +
-            "<div style='height:6px;background:#F1F5F9;border-radius:3px'><div style='height:100%;width:"+pct+"%;background:#2563EB;border-radius:3px'></div></div>" +
+            "<div style='height:6px;background:#F1F5F9;border-radius:3px'><div style='height:100%;width:"+pct+"%;background:"+EPWorkspace.statusPalette(stage).color+";border-radius:3px'></div></div>" +
           "</div>";
         }).join("") +
         "</div></div>" +
