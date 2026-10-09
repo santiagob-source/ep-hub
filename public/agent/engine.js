@@ -1,8 +1,8 @@
 (function (root, factory) {
   if (typeof module === "object" && module.exports)
-    module.exports = factory(require("./catalog"));
-  else root.EPAgentEngine = factory(root.EPAgentCatalog);
-})(globalThis, function (catalog) {
+    module.exports = factory(require("./catalog"), require("./workspace"));
+  else root.EPAgentEngine = factory(root.EPAgentCatalog, root.EPWorkspace);
+})(globalThis, function (catalog, workspace) {
   const clone = (x) => JSON.parse(JSON.stringify(x));
   function validate(value, schema, path = "args") {
     if (schema.type === "object") {
@@ -315,8 +315,10 @@
         ],
       }),
       search_records: (a) => {
+        const display=r=>a.entity==="jobs"?{...r,status:workspace.status(r),processStatus:workspace.status(r)}:r;
         let all = hub
           .list(a.entity)
+          .map(display)
           .filter(
             (r) =>
               (!a.query ||
@@ -333,7 +335,7 @@
         if (!all.length && a.query) {
           all = hub
             .nameMatches(a.entity, a.query)
-            .map((m) => m.item)
+            .map((m) => display(m.item))
             .filter((r) =>
               Object.entries(a.filters || {}).every(([k, v]) =>
                 typeof v === "boolean" || typeof v === "number"
@@ -352,7 +354,7 @@
           has_more: offset + (a.limit || 20) < all.length,
         };
       },
-      get_record: (a) => redact(hub.record(a.entity, a.id)),
+      get_record: (a) => {const r=hub.record(a.entity,a.id);return redact(a.entity==="jobs"?{...r,status:workspace.status(r),processStatus:workspace.status(r)}:r);},
       create_record: (a) => ({
         ok: true,
         record: redact(hub.save(a.entity, null, a.data)),

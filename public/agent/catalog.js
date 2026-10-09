@@ -55,7 +55,7 @@
         processStatus: "",
         client: "",
         owner: "Santi",
-        status: "En proceso",
+        status: "Abierto",
         feePercent: 0,
         salaryAgreed: 0,
         notes: "",
@@ -595,7 +595,7 @@
     ["schedule_id"],
     "write",
   );
-  add("attach_uploaded_document", "Guarda un adjunto seleccionado por el usuario en un cliente y su vacante, después de confirmar. Resolver IDs con search_records. No lee el contenido del archivo.", {file_id:{type:"string"},client_id:{type:"string"},job_id:{type:"string"}}, ["file_id","client_id","job_id"], "write");
+  add("attach_uploaded_document", "Guarda un adjunto seleccionado por el usuario en un cliente y su job, después de confirmar. Resolver IDs con search_records. No lee el contenido del archivo.", {file_id:{type:"string"},client_id:{type:"string"},job_id:{type:"string"}}, ["file_id","client_id","job_id"], "write");
   function effect(def, args) {
     return def.effect === "dynamic"
       ? ["upload", "remove", "upload_signed", "attach_proposal"].includes(

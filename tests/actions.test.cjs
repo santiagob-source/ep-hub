@@ -607,8 +607,8 @@ test('new vacancies default to People while editing legacy vacancies preserves B
  const created=s.hub.save('jobs',null,{title:'Nueva'});
  assert.equal(created.businessArea,'Expansion People');
  s.state.jobs.push({id:'old',title:'Anterior',status:'En proceso',jobStatus:'Facturado',pipeline:[],feePercent:10,salaryAgreed:30000});
- const edited=s.hub.save('jobs','old',{status:'Cubierto',notes:'Actualizada'});
- assert.equal(edited.businessArea,'Expansion Business');assert.equal(edited.jobStatus,'Facturado');assert.equal(edited.processStatus,'Cubierto');
+ const edited=s.hub.save('jobs','old',{status:'Placement',notes:'Actualizada'});
+ assert.equal(edited.businessArea,'Expansion Business');assert.equal(edited.jobStatus,'Facturado');assert.equal(edited.processStatus,'Placement');
  const moved=s.hub.save('jobs','old',{businessArea:'Expansion People'});
  assert.equal(moved.businessArea,'Expansion People');assert.equal(moved.jobStatus,'Facturado');
 });
@@ -632,4 +632,10 @@ test('billing inherits historical area, preserves explicit year and rejects inva
  s.state.jobs.push({id:'j',title:'Nueva',client:'Clínica',businessArea:'Expansion People'});
  const created=s.hub.save('placements',null,{title:'Factura',job:'Nueva',client:'Clínica',year:2027});assert.equal(created.businessArea,'Expansion People');assert.equal(created.year,2027);
  const before=JSON.stringify(s.state.placements);assert.throws(()=>s.hub.save('placements',created.id,{year:2027.5}),/inválidos/);assert.equal(JSON.stringify(s.state.placements),before);
+});
+
+test('Kitty searches computed job states without changing raw financial data',async()=>{
+ const s=setup();s.state.jobs.push({id:'empty',title:'Sin candidatos',status:'En proceso',pipeline:[]},{id:'with',title:'Con candidatos',status:'Pendiente',pipeline:[{name:'Ana',label:'En proceso'}]});
+ const before=JSON.stringify(s.state.jobs);const out=await s.engine.execute(s.plan('search_records',{entity:'jobs',filters:{status:'En proceso'}}));assert.equal(out.count,1);assert.equal(out.items[0].id,'with');
+ const read=await s.engine.execute(s.plan('get_record',{entity:'jobs',id:'empty'}));assert.equal(read.status,'Abierto');assert.equal(JSON.stringify(s.state.jobs),before);
 });

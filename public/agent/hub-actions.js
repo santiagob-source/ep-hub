@@ -288,8 +288,8 @@
         if (data.processStatus) updated.status = data.processStatus;
         if (Object.hasOwn(data, "status") || data.processStatus) {
           const value = updated.status;
-          updated.processStatus = value === "Facturado" ? "Cubierto" : value === "En proceso" ? "Abierto" : value;
-          if (!["Pendiente", "Abierto", "Standby", "Cubierto", "Cancelado"].includes(updated.processStatus)) throw Error("Estado de vacante no disponible");
+          updated.processStatus = ["Facturado", "Cubierto"].includes(value) ? "Placement" : value === "Cancelado" ? "Cerrado" : value === "Pendiente" ? "Abierto" : value;
+          if (!["Abierto", "En proceso", "Placement", "Standby", "Cerrado"].includes(updated.processStatus)) throw Error("Estado de job no disponible");
         }
         updated.jobStatus = existing?.jobStatus === "Facturado" ? "Facturado" : Object.hasOwn(data, "status") || data.processStatus
           ? updated.status

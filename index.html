@@ -1056,18 +1056,18 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><button id="agent-attach" class="ghost-button" type="button">📎 Adjuntar</button><input id="agent-file" type="file" accept="application/pdf,image/png,image/jpeg" hidden><span id="agent-file-name" style="font-size:12px"></span><button id="agent-file-remove" type="button" class="ghost-button" hidden>Quitar</button></div><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/workspace.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/text-encoding.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/documents.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-documents-review-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/workspace.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/documents.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-job-states-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1083,7 +1083,7 @@ const navGroups = [
       { id: "clients", icon: "🏢", title: "Clientes" },
       { id: "review", icon: "🔎", title: "Revisión" },
       { id: "candidates", icon: "👥", title: "Candidatos" },
-      { id: "jobs", icon: "📋", title: "Vacantes" },
+      { id: "jobs", icon: "📋", title: "Jobs" },
       { id: "tasks", icon: "✅", title: "Tareas" },
     ],
   },
@@ -1784,9 +1784,9 @@ function renderDashboard(){
   const billing=(state.forecast||[]).filter(f=>!f.billed);
   const link=(type,item,label)=>'<button class="workspace-link" data-open-detail="'+type+':'+agentSafe(item.id)+'">'+agentSafe(label)+'</button>';
   const panel=(name,body)=>'<section class="panel"><div class="panel-header"><h2 class="panel-title">'+name+'</h2></div><div class="panel-body">'+body+'</div></section>';
-  app.innerHTML='<div class="toolbar"><p class="workspace-hint">Tu trabajo y los datos pendientes, en un solo lugar.</p><button class="ghost-button" data-view="review">Revisar clientes y vacantes</button></div><div class="grid two">'+
+  app.innerHTML='<div class="toolbar"><p class="workspace-hint">Tu trabajo y los datos pendientes, en un solo lugar.</p><button class="ghost-button" data-view="review">Revisar clientes y jobs</button></div><div class="grid two">'+
     panel('Tareas y contactos próximos',due.slice(0,6).map(t=>'<div class="workspace-item">'+agentSafe(t.title)+'<small class="workspace-sub">'+(t.due?new Date(t.due).toLocaleString('es-ES',{timeZone:'Europe/Madrid'}):'Prioridad alta')+'</small></div>').join('')+contacts.slice(0,4).map(c=>'<div class="workspace-item">'+link('candidate',c,'Contactar: '+c.name)+'</div>').join('')+(!due.length&&!contacts.length?'<p>Sin pendientes próximos.</p>':'')+'<button class="ghost-button" data-view="tasks">Ver todas las tareas</button>')+
-    panel('Vacantes para revisar · '+jobs.length,jobs.slice(0,6).map(j=>'<div class="workspace-item">'+link('job',j,j.title)+'<small class="workspace-sub">'+agentSafe(j.client||'Sin cliente')+' · '+EPWorkspace.labels[EPWorkspace.status(j)]+' · '+EPWorkspace.area(j)+'</small></div>').join('')+'<button class="ghost-button" data-view="jobs">Ver vacantes</button>')+
+    panel('Jobs para revisar · '+jobs.length,jobs.slice(0,6).map(j=>'<div class="workspace-item">'+link('job',j,j.title)+'<small class="workspace-sub">'+agentSafe(j.client||'Sin cliente')+' · '+EPWorkspace.labels[EPWorkspace.status(j)]+' · '+EPWorkspace.area(j)+'</small></div>').join('')+'<button class="ghost-button" data-view="jobs">Ver jobs</button>')+
     panel('Clientes con datos pendientes · '+incomplete.length,incomplete.slice(0,4).map(c=>'<div class="workspace-item">'+link('client',c,c.name)+clientMissingHtml(c)+'</div>').join('')+(!incomplete.length?'<p>Las fichas están completas.</p>':'')+'<button class="ghost-button" onclick="activeFilters.clients=\'Datos pendientes\';setView(\'clients\')">Completar clientes</button>')+
     panel('Forecast pendiente de facturar · '+billing.length,billing.slice(0,5).map(f=>'<div class="workspace-item">'+agentSafe(f.title||f.clientName||'Sin título')+'<small class="workspace-sub">'+agentSafe(f.month||'Sin mes')+' · '+money(f.amount||0)+'</small></div>').join('')+'<button class="ghost-button" data-view="forecast">Ver forecast</button>')+'</div>';
 }
@@ -1946,7 +1946,7 @@ function getDirectoryConfig(key) {
       status: (item) => item.status || "Activo",
       meta: (item) => [
         ["Estado", item.status || "Activo"],
-        ["Vacantes", countClientJobs(item)],
+        ["Jobs", countClientJobs(item)],
         ["Contacto", item.contact || "-"],
       ],
       foot: (item) => item.jobs || "Sin jobs cargados",
@@ -2002,7 +2002,7 @@ function renderClientsWorkspace(){
   const filter=activeFilters.clients||'Todos',config=getDirectoryConfig('clients');
   const clients=state.clients.filter(c=>matchesDirectoryFilter('clients',c,filter));
   const list=items=>items.length?'Falta '+items.map(x=>x[1]).join(', '):'Completo';
-  app.innerHTML='<div class="toolbar"><input class="search" type="search" placeholder="Buscar cliente…" data-search="clients"><div class="segmented">'+config.filters.map(f=>'<button class="'+(filter===f?'active':'')+'" data-filter="clients:'+f+'">'+f+'</button>').join('')+'</div><button class="primary-button" data-add="clients">+ Nuevo cliente</button></div><p class="workspace-hint">Los datos de contacto y facturación se revisan por separado. Los fiscales pueden completarse cuando el cliente avance.</p><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Estado</th><th>Vacantes activas</th><th>Contacto</th><th>Facturación</th><th></th></tr></thead><tbody>'+clients.map(c=>{
+  app.innerHTML='<div class="toolbar"><input class="search" type="search" placeholder="Buscar cliente…" data-search="clients"><div class="segmented">'+config.filters.map(f=>'<button class="'+(filter===f?'active':'')+'" data-filter="clients:'+f+'">'+f+'</button>').join('')+'</div><button class="primary-button" data-add="clients">+ Nuevo cliente</button></div><p class="workspace-hint">Los datos de contacto y facturación se revisan por separado. Los fiscales pueden completarse cuando el cliente avance.</p><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Estado</th><th>Jobs activas</th><th>Contacto</th><th>Facturación</th><th></th></tr></thead><tbody>'+clients.map(c=>{
     const m=EPWorkspace.missing(c);
     return '<tr data-card="'+agentSafe(c.id)+'" data-open-detail="client:'+agentSafe(c.id)+'"><td><strong>'+agentSafe(c.name)+'</strong></td><td><span class="status-badge '+statusClass(c.status)+'">'+agentSafe(c.status||'Activo')+'</span></td><td>'+countClientJobs(c)+'</td><td>'+list(m.contact)+'</td><td>'+list(m.billing)+'</td><td><button class="ghost-button" data-edit="clients:'+agentSafe(c.id)+'">Completar / editar</button></td></tr>';
   }).join('')+(clients.length?'':'<tr><td colspan="6">No hay clientes con este filtro.</td></tr>')+'</tbody></table></div>';
@@ -2304,7 +2304,7 @@ function renderForecast() {
     "</div>" +
     "<p class='workspace-hint'>Total previsto: "+money(total)+"</p>" +
     "<div class='table-wrap'><table>" +
-      "<thead><tr><th>Consultor</th><th>Importe</th><th>Vacante / Título</th><th>Candidato</th><th>Estado</th><th></th></tr></thead>" +
+      "<thead><tr><th>Consultor</th><th>Importe</th><th>Job / Título</th><th>Candidato</th><th>Estado</th><th></th></tr></thead>" +
       "<tbody>"+rows+"</tbody>" +
     "</table></div>";
 }
@@ -2427,7 +2427,7 @@ function diagnosticText(){
   const audit=EPWorkspace.audit(state);
   return ['REVISIÓN DEL HUB', 'Clientes con datos pendientes: '+audit.clients.length,
     ...audit.clients.map(r=>r.client.name+' — Contacto: '+(r.missing.contact.map(x=>x[1]).join(', ')||'completo')+'; Facturación: '+(r.missing.billing.map(x=>x[1]).join(', ')||'completa')),
-    'Vacantes para revisar (pocos = menos de 3 candidatos activos): '+audit.jobs.length,
+    'Jobs para revisar (pocos = menos de 3 candidatos activos): '+audit.jobs.length,
     ...audit.jobs.map(r=>r.job.title+' — '+(r.job.client||'sin cliente')+' — '+EPWorkspace.area(r.job)+' — '+r.count+' candidatos activos — '+EPWorkspace.labels[EPWorkspace.status(r.job)]+(r.gaps.length?' — Falta: '+r.gaps.join(', '):''))].join('\n');
 }
 async function copyDiagnostic(){
@@ -2436,7 +2436,7 @@ async function copyDiagnostic(){
 }
 function renderDataReview(){
   const audit=EPWorkspace.audit(state),list=items=>items.map(x=>x[1]).join(', ')||'Completo';
-  app.innerHTML='<div class="toolbar"><p class="workspace-hint">Pocos candidatos = 1 o 2 activos. Se excluyen rechazados, no presentados y placements. Las vacantes cubiertas o canceladas quedan fuera.</p><button class="ghost-button" onclick="copyDiagnostic()">Copiar diagnóstico</button></div><div class="grid two"><section class="panel panel-body"><h2 class="panel-title">'+audit.clients.length+' clientes con datos pendientes</h2><p>Completá primero el contacto; los datos fiscales se revisan antes de facturar.</p></section><section class="panel panel-body"><h2 class="panel-title">'+audit.jobs.filter(r=>!r.count).length+' vacantes sin candidatos · '+audit.jobs.filter(r=>r.count>0&&r.count<3).length+' con pocos</h2><p>Revisá si siguen vigentes y qué búsqueda necesitan.</p></section></div><h2 style="margin-top:24px">Clientes</h2><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contacto pendiente</th><th>Facturación pendiente</th><th></th></tr></thead><tbody>'+audit.clients.map(r=>'<tr><td><button class="workspace-link" data-open-detail="client:'+agentSafe(r.client.id)+'">'+agentSafe(r.client.name)+'</button></td><td>'+list(r.missing.contact)+'</td><td>'+list(r.missing.billing)+'</td><td><button class="ghost-button" data-edit="clients:'+agentSafe(r.client.id)+'">Completar</button></td></tr>').join('')+(audit.clients.length?'':'<tr><td colspan="4">No hay datos pendientes.</td></tr>')+'</tbody></table></div><h2 style="margin-top:24px">Vacantes para revisar</h2><div class="table-wrap"><table><thead><tr><th>Vacante / cliente</th><th>Área</th><th>Estado</th><th>Candidatos activos</th><th>Revisar</th></tr></thead><tbody>'+audit.jobs.map(r=>'<tr><td><button class="workspace-link" data-open-detail="job:'+agentSafe(r.job.id)+'">'+agentSafe(r.job.title)+'</button><small class="workspace-sub">'+agentSafe(r.job.client||'Sin cliente')+'</small></td><td>'+EPWorkspace.area(r.job)+'</td><td>'+EPWorkspace.labels[EPWorkspace.status(r.job)]+'</td><td>'+r.count+'</td><td>'+(!r.count?'Confirmar vigencia y comenzar búsqueda':r.count<3?'Ampliar búsqueda':'Completar ficha')+(r.gaps.length?' · Falta '+r.gaps.join(', '):'')+'</td></tr>').join('')+(audit.jobs.length?'':'<tr><td colspan="5">No hay vacantes con pocos candidatos o datos básicos pendientes.</td></tr>')+'</tbody></table></div>';
+  app.innerHTML='<div class="toolbar"><p class="workspace-hint">Pocos candidatos = 1 o 2 activos. Se excluyen rechazados, no presentados y placements. Los jobs en Placement o Cerrado quedan fuera.</p><button class="ghost-button" onclick="copyDiagnostic()">Copiar diagnóstico</button></div><div class="grid two"><section class="panel panel-body"><h2 class="panel-title">'+audit.clients.length+' clientes con datos pendientes</h2><p>Completá primero el contacto; los datos fiscales se revisan antes de facturar.</p></section><section class="panel panel-body"><h2 class="panel-title">'+audit.jobs.filter(r=>!r.count).length+' jobs sin candidatos · '+audit.jobs.filter(r=>r.count>0&&r.count<3).length+' con pocos</h2><p>Revisá si siguen vigentes y qué búsqueda necesitan.</p></section></div><h2 style="margin-top:24px">Clientes</h2><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contacto pendiente</th><th>Facturación pendiente</th><th></th></tr></thead><tbody>'+audit.clients.map(r=>'<tr><td><button class="workspace-link" data-open-detail="client:'+agentSafe(r.client.id)+'">'+agentSafe(r.client.name)+'</button></td><td>'+list(r.missing.contact)+'</td><td>'+list(r.missing.billing)+'</td><td><button class="ghost-button" data-edit="clients:'+agentSafe(r.client.id)+'">Completar</button></td></tr>').join('')+(audit.clients.length?'':'<tr><td colspan="4">No hay datos pendientes.</td></tr>')+'</tbody></table></div><h2 style="margin-top:24px">Jobs para revisar</h2><div class="table-wrap"><table><thead><tr><th>Job / cliente</th><th>Área</th><th>Estado</th><th>Candidatos activos</th><th>Revisar</th></tr></thead><tbody>'+audit.jobs.map(r=>'<tr><td><button class="workspace-link" data-open-detail="job:'+agentSafe(r.job.id)+'">'+agentSafe(r.job.title)+'</button><small class="workspace-sub">'+agentSafe(r.job.client||'Sin cliente')+'</small></td><td>'+EPWorkspace.area(r.job)+'</td><td>'+EPWorkspace.labels[EPWorkspace.status(r.job)]+'</td><td>'+r.count+'</td><td>'+(!r.count?'Confirmar vigencia y comenzar búsqueda':r.count<3?'Ampliar búsqueda':'Completar ficha')+(r.gaps.length?' · Falta '+r.gaps.join(', '):'')+'</td></tr>').join('')+(audit.jobs.length?'':'<tr><td colspan="5">No hay jobs con pocos candidatos o datos básicos pendientes.</td></tr>')+'</tbody></table></div>';
 }
 
 function findJobsForClient(clientName) {
@@ -2529,7 +2529,7 @@ function renderClientDetail(id) {
 }
 
 function renderRecordDocuments(record){
-  return '<section class="panel panel-body" style="margin-top:18px"><h2 class="panel-title">Documentos adjuntos</h2>'+((record.documents||[]).map(d=>{try{const file=(state.documentFiles||[]).find(f=>f.id===d.id);EPAgentDocuments.valid({...file,data:file?.encoded});return '<p><a download="'+agentSafe(d.name)+'" href="'+agentSafe(file.encoded)+'">📎 '+agentSafe(d.name)+'</a></p>';}catch{return '';}}).join('')||'<p class="hint">Adjuntá una factura o documento desde La Kitty e indicá el cliente y la vacante.</p>')+'</section>';
+  return '<section class="panel panel-body" style="margin-top:18px"><h2 class="panel-title">Documentos adjuntos</h2>'+((record.documents||[]).map(d=>{try{const file=(state.documentFiles||[]).find(f=>f.id===d.id);EPAgentDocuments.valid({...file,data:file?.encoded});return '<p><a download="'+agentSafe(d.name)+'" href="'+agentSafe(file.encoded)+'">📎 '+agentSafe(d.name)+'</a></p>';}catch{return '';}}).join('')||'<p class="hint">Adjuntá una factura o documento desde La Kitty e indicá el cliente y la job.</p>')+'</section>';
 }
 
 function renderCandidateDetail(id) {
@@ -2660,12 +2660,12 @@ function renderJobs() {
   const owner=window._jobOwnerFilter||'',client=window._jobClientFilter||'';
   const jobs=state.jobs.filter(j=>(area==='Todos'||EPWorkspace.area(j)===area)&&(sf==='Todos'?true:sf==='Archivo'?!EPWorkspace.active(j):sf==='Activos'?EPWorkspace.active(j):EPWorkspace.status(j)===sf)&&( !owner||j.owner===owner)&&(!client||j.client===client));
   const options=(values,value,label)=>'<option value="">'+label+'</option>'+values.filter(Boolean).map(v=>'<option value="'+agentSafe(v)+'" '+(v===value?'selected':'')+'>'+agentSafe(v)+'</option>').join('');
-  app.innerHTML='<div class="workspace-tabs">'+['Expansion People','Expansion Business','Todos'].map(a=>'<button class="ghost-button '+(area===a?'selected':'')+'" data-job-area="'+a+'">'+a+'</button>').join('')+'</div><div class="toolbar"><input class="search" type="search" placeholder="Buscar vacante o cliente…" data-search="jobs"><select class="search" data-job-status><option value="Activos" '+(sf==='Activos'?'selected':'')+'>Activas</option><option value="Archivo" '+(sf==='Archivo'?'selected':'')+'>Archivo</option><option value="Todos" '+(sf==='Todos'?'selected':'')+'>Todos los estados</option>'+EPWorkspace.states.map(s=>'<option value="'+s+'" '+(sf===s?'selected':'')+'>'+EPWorkspace.labels[s]+'</option>').join('')+'</select><select class="search" aria-label="Responsable" data-job-owner>'+options([...new Set(state.jobs.map(j=>j.owner))],owner,'Todos los responsables')+'</select><select class="search" aria-label="Cliente" data-job-client>'+options([...new Set(state.jobs.map(j=>j.client))],client,'Todos los clientes')+'</select><button class="primary-button" data-add-job>+ Nueva vacante</button></div><p class="workspace-hint">'+jobs.length+' vacantes · Los nuevos procesos se crean en Expansion People.</p><div class="table-wrap"><table><thead><tr><th>Vacante / área</th><th>Cliente</th><th>Responsable</th><th>Estado</th><th>Candidatos</th><th>Pendiente</th><th></th></tr></thead><tbody>'+jobs.map(j=>{
+  app.innerHTML='<div class="workspace-tabs">'+['Expansion People','Expansion Business','Todos'].map(a=>'<button class="ghost-button '+(area===a?'selected':'')+'" data-job-area="'+a+'">'+a+'</button>').join('')+'</div><div class="toolbar"><input class="search" type="search" placeholder="Buscar job o cliente…" data-search="jobs"><select class="search" data-job-status><option value="Activos" '+(sf==='Activos'?'selected':'')+'>Activos</option><option value="Archivo" '+(sf==='Archivo'?'selected':'')+'>Archivo</option><option value="Todos" '+(sf==='Todos'?'selected':'')+'>Todos los estados</option>'+EPWorkspace.states.map(s=>'<option value="'+s+'" '+(sf===s?'selected':'')+'>'+EPWorkspace.labels[s]+'</option>').join('')+'</select><select class="search" aria-label="Responsable" data-job-owner>'+options([...new Set(state.jobs.map(j=>j.owner))],owner,'Todos los responsables')+'</select><select class="search" aria-label="Cliente" data-job-client>'+options([...new Set(state.jobs.map(j=>j.client))],client,'Todos los clientes')+'</select><button class="primary-button" data-add-job>+ Nuevo Job</button></div><p class="workspace-hint">'+jobs.length+' jobs · Los nuevos procesos se crean en Expansion People.</p><div class="table-wrap"><table><thead><tr><th>Job / área</th><th>Cliente</th><th>Responsable</th><th>Estado</th><th>Candidatos</th><th>Pendiente</th><th></th></tr></thead><tbody>'+jobs.map(j=>{
     const status=EPWorkspace.status(j), pipeline=j.pipeline||[];
     const todo=state.tasks.filter(t=>!t.done&&normalize(t.linkedTo)===normalize(j.title));
-    const next=!EPWorkspace.active(j)?'Archivada':todo[0]?.title||(!pipeline.length?'Añadir candidatos':pipeline.some(p=>p.stage==='Oferta')?'Revisar oferta':pipeline.some(p=>p.stage.startsWith('Entrevista'))?'Revisar entrevistas':'Revisar candidatos');
+    const next=!EPWorkspace.active(j)?'Archivado':todo[0]?.title||(!pipeline.length?'Añadir candidatos':pipeline.some(p=>p.stage==='Oferta')?'Revisar oferta':pipeline.some(p=>p.stage.startsWith('Entrevista'))?'Revisar entrevistas':'Revisar candidatos');
     return '<tr class="job-panel" data-open-detail="job:'+agentSafe(j.id)+'"><td><strong>'+agentSafe(j.title)+'</strong><small class="workspace-sub">'+EPWorkspace.area(j)+'</small></td><td>'+agentSafe(j.client||'Sin cliente')+'</td><td>'+agentSafe(j.owner||'Sin responsable')+'</td><td><span class="status-badge" style="color:'+EPWorkspace.colors[status]+'">'+EPWorkspace.labels[status]+'</span><small class="workspace-sub">'+(j.jobStatus==='Facturado'?'Facturada':'')+'</small></td><td>'+pipeline.filter(p=>!['Rechazado','No presentado'].includes(p.label)).length+'</td><td>'+agentSafe(next)+'</td><td><button class="ghost-button" data-edit-job="'+agentSafe(j.id)+'">Editar</button></td></tr>';
-  }).join('')+(jobs.length?'':'<tr><td colspan="7">No hay vacantes con estos filtros.</td></tr>')+'</tbody></table></div>';
+  }).join('')+(jobs.length?'':'<tr><td colspan="7">No hay jobs con estos filtros.</td></tr>')+'</tbody></table></div>';
 }
 
 function renderJobDetail(id) {
@@ -3515,7 +3515,7 @@ function editJob(id, defaults) {
         "<div class='field'><label>Cliente</label><select name='client'><option value=''>-- Seleccionar --</option>"+clientOpts+"</select></div>" +
         "<div class='field'><label>Responsable</label><select name='owner'>"+ownerOpts+"</select></div>" +
         "<div class='field'><label>Área</label><select name='businessArea'>"+["Expansion People","Expansion Business"].map(a=>"<option"+((record.businessArea||(id?"Expansion Business":"Expansion People"))===a?" selected":"")+">"+a+"</option>").join("")+"</select></div>" +
-        "<div class='field'><label>Estado</label><select name='status'>"+statusOpts+"</select></div>" +
+        "<div class='field'><label>Estado</label><select name='status'>"+statusOpts+"</select></div>" + "<p class='field full hint'>Abierto y En proceso se ajustan a los candidatos activos. Placement, Standby y Cerrado se pueden seleccionar manualmente.</p>" +
         "<div class='field'><label>Fee %</label><input name='feePercent' type='number' value='"+(record.feePercent||"")+"' placeholder='16'/></div>" +
         "<div class='field full'><label>Notas</label><textarea name='notes' style='width:100%;min-height:60px;padding:8px;border:1.5px solid #CBD5E1;border-radius:8px;font-family:inherit;resize:vertical'>"+(record.notes||"")+"</textarea></div>" +
       "</form>" +
@@ -4710,7 +4710,7 @@ function prop_generateHTML(p, client, tipo) {
     <strong>a) Candidato:</strong> persona incluida en un proceso de selección, reclutamiento o evaluación.<br>
     <strong>b) Candidato Aceptado:</strong> Candidato que recibe oferta laboral por parte del CLIENTE.<br>
     <strong>c) Candidato Presentado:</strong> persona seleccionada por EXPANSION para su presentación al CLIENTE.<br>
-    <strong>d) Fee de Cancelación:</strong> Porcentaje aplicado sobre la factura estimada por el perfil (teniendo en cuenta el salario mínimo de fijo + variable que se contempla para esa vacante). Se aplica solamente si se cancela la posición a la consultora, una vez iniciada la fase de entrevistas entre cliente y candidato.<br>
+    <strong>d) Fee de Cancelación:</strong> Porcentaje aplicado sobre la factura estimada por el perfil (teniendo en cuenta el salario mínimo de fijo + variable que se contempla para esa job). Se aplica solamente si se cancela la posición a la consultora, una vez iniciada la fase de entrevistas entre cliente y candidato.<br>
     <strong>e) Finalización del proceso:</strong> fecha en la que el Candidato Aceptado acepta una oferta laboral firme de incorporación del CLIENTE, independientemente de la fecha en la que se produzca.<br>
     <strong>f) Honorarios:</strong> porcentaje sobre el Salario Bruto Anual (fijo + variable) del candidato aceptado que se emplea para el cálculo del precio del servicio que presta EXPANSION o, en su caso, importe concreto en euros.<br>
     <strong>g) Incorporación del Candidato:</strong> momento en el que el Candidato Seleccionado comienza su relación laboral con el CLIENTE.<br>
@@ -5236,7 +5236,7 @@ function renderMetricas() {
   }).reduce(function(s,f){return s+(parseFloat(f.amount)||0);},0);
 
   var METRICS = [
-    {label:"Vacantes activas", value:openJobs, sub:"de "+totalJobs+" totales", color:"#2563EB"},
+    {label:"Jobs activas", value:openJobs, sub:"de "+totalJobs+" totales", color:"#2563EB"},
     {label:"En pipeline", value:cands_active, sub:"participaciones en procesos", color:"#7C3AED"},
     {label:"Entrevistas activas", value:entrevistas, sub:"en proceso", color:"#0891B2"},
     {label:"Ofertas activas", value:ofertas, sub:"pendientes", color:"#D97706"},
@@ -5267,7 +5267,7 @@ function renderMetricas() {
   app.innerHTML =
     "<p class='workspace-hint'>Actividad de selección y resultados del equipo.</p><div class='metrics-grid'>" + cards + "</div>" +
     "<div class='grid two'>" +
-      "<div class='panel'><div class='panel-header'><span class='panel-title'>Vacantes por estado</span></div>" +
+      "<div class='panel'><div class='panel-header'><span class='panel-title'>Jobs por estado</span></div>" +
         "<div class='panel-body'>"+statusBreakdown+"</div></div>" +
       "<div class='panel'><div class='panel-header'><span class='panel-title'>Candidatos por etapa</span></div>" +
         "<div class='panel-body'>" +
