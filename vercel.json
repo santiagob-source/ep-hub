@@ -6,6 +6,12 @@
     },
     "api/gmail.js": {
       "maxDuration": 30
+    },
+    "api/whatsapp.js": {
+      "maxDuration": 30
+    },
+    "api/whatsapp-worker.js": {
+      "maxDuration": 60
     }
   }
 }

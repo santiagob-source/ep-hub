@@ -547,6 +547,45 @@
     ["draft_id"],
     "write",
   );
+  add(
+    "whatsapp_status",
+    "Comprueba la conexión con respond.io y si el ejecutor de envíos programados está activo.",
+    {},
+    [],
+  );
+  add(
+    "whatsapp_templates",
+    "Consulta plantillas aprobadas del canal de WhatsApp. Usá nombres, idiomas y parámetros reales, no inventes plantillas.",
+    { cursor_id: { type: "integer", minimum: 1 } },
+    [],
+  );
+  add(
+    "whatsapp_list_scheduled",
+    "Lista tus últimos envíos programados con sus IDs, fecha y estado. Distingue aceptado de entregado.",
+    {},
+    [],
+  );
+  add(
+    "whatsapp_schedule",
+    "Programa un WhatsApp a un candidato existente, tras revisión y confirmación. Hora Europe/Madrid con offset explícito. Fuera de la ventana de 24h requiere plantilla aprobada.",
+    {
+      candidate_id: str,
+      send_at: str,
+      message: str,
+      template_name: str,
+      template_language: str,
+      template_parameters: { type: "array", items: str, maxItems: 30 },
+    },
+    ["candidate_id", "send_at"],
+    "write",
+  );
+  add(
+    "whatsapp_cancel",
+    "Cancela uno de tus envíos pendientes después de confirmación. Consultá antes sus IDs con whatsapp_list_scheduled.",
+    { schedule_id: str },
+    ["schedule_id"],
+    "write",
+  );
   function effect(def, args) {
     return def.effect === "dynamic"
       ? ["upload", "remove", "upload_signed", "attach_proposal"].includes(

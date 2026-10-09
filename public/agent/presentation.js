@@ -16,6 +16,14 @@
         })[c],
     );
   const labels = {
+    recipient: "Destinatario",
+    scheduled_for: "Fecha y hora",
+    send_at: "Fecha y hora",
+    template_name: "Plantilla",
+    template_language: "Idioma",
+    schedule_id: "Envío programado",
+    approved_at: "Confirmado el",
+    detail: "Detalle",
     name: "Nombre",
     title: "Título",
     client: "Cliente",
@@ -50,6 +58,22 @@
     truncated: "Contenido recortado",
     draft_id: "Borrador",
   };
+  function stateLabel(value) {
+    const names = {
+      pending: "Pendiente",
+      sending: "En proceso",
+      accepted: "Aceptado; entrega sin confirmar",
+      sent: "Enviado",
+      delivered: "Entregado",
+      read: "Leído",
+      failed: "Falló",
+      unknown: "Resultado incierto; revisar respond.io",
+      cancelled: "Cancelado",
+      expired: "Vencido sin enviar",
+      APPROVED: "Aprobada",
+    };
+    return Object.hasOwn(names, value) ? names[value] : value;
+  }
   function fields(data, resolve) {
     return Object.entries(data || {})
       .filter(
@@ -140,9 +164,12 @@
               mail
                 ? [item.from, item.date].filter(Boolean).join(" · ")
                 : [
+                    item.scheduled_for,
+                    item.phone,
                     item.specialty,
                     item.location,
-                    item.status,
+                    stateLabel(item.status),
+                    item.languageCode,
                     item.client,
                     item.email,
                   ]

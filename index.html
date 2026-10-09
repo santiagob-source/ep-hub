@@ -1037,19 +1037,20 @@ tr:hover td { background: #FAFBFC; }
     <button id="agent-launcher" class="agent-launcher" type="button" aria-label="Abrir Kitty" aria-controls="agent-panel" aria-expanded="false">✦ Kitty</button>
     <section id="agent-panel" class="agent-panel" aria-label="Kitty, tu asistente" aria-hidden="true">
       <div class="agent-head"><div><strong>✦ Kitty</strong><small>Tu Hub y tu correo, en una conversación</small></div><div class="kitty-head-actions"><button id="agent-expand" class="kitty-expand" type="button" aria-label="Ampliar Kitty" aria-pressed="false">⤢</button><button id="agent-close" class="agent-close" type="button" aria-label="Cerrar Kitty">×</button></div></div>
-      <div class="kitty-toolbar"><span id="kitty-status" class="kitty-status" role="status">Lista para ayudarte</span><button id="agent-gmail" type="button">Conectar Gmail</button></div>
+      <div class="kitty-toolbar"><span id="kitty-status" class="kitty-status" role="status">Lista para ayudarte</span><button id="agent-gmail" type="button">Conectar Gmail</button><button id="agent-whatsapp" type="button">WhatsApp</button></div>
       <div id="agent-messages" class="agent-messages" role="log" aria-label="Conversación con Kitty" aria-live="polite"></div>
       <div class="kitty-shortcuts" aria-label="Sugerencias"><button type="button" data-kitty-prompt="Buscá mis tareas pendientes para hoy.">✓ Mi día</button><button type="button" data-kitty-prompt="Buscá mis últimos cinco correos y resumilos.">✉ Mis correos</button><button type="button" data-kitty-prompt="Quiero buscar candidatos. Preguntame qué perfil necesito.">⌕ Candidatos</button><button type="button" data-kitty-prompt="Quiero crear una tarea. Preguntame qué tengo que hacer y con quién vincularla.">＋ Crear tarea</button></div>
       <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para Kitty" placeholder="Pedile a Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/presentation.js?v=20261008-kitty-1"></script>
-    <script src="/public/agent/message-format.js?v=20261008-kitty-1"></script>
-    <script src="/public/agent/gmail.js?v=20261008-kitty-1"></script>
-    <script src="/public/agent/catalog.js?v=20261008-kitty-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261008-kitty-1"></script>
-    <script src="/public/agent/engine.js?v=20261008-kitty-1"></script>
-    <script src="/public/agent/runtime.js?v=20261008-kitty-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-whatsapp-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-whatsapp-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-whatsapp-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-whatsapp-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-whatsapp-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-whatsapp-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-whatsapp-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-whatsapp-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -5379,8 +5380,9 @@ function agentAddMessage(role,text,html){
   box.appendChild(el);box.scrollTop=box.scrollHeight;
 }
 const agentGmail=EPAgentGmail.create({user:()=>fbAuth?.currentUser,changed:info=>{const b=document.getElementById("agent-gmail");if(b){b.textContent=info.connected?"Gmail: "+info.email:"Conectar Gmail";b.title=info.connected?"Clic para desconectar esta cuenta":"Conectar tu cuenta de Google";}}});
+const agentWhatsApp=EPAgentWhatsApp.create({user:()=>fbAuth?.currentUser,hub:hubActions,consent:()=>{const checks=[...document.querySelectorAll('.agent-approval[data-kitty-active="true"] .kitty-consent')];return checks.length>0&&checks.every(x=>x.checked);},changed:info=>{const b=document.getElementById('agent-whatsapp');b.textContent=info.scheduler_ready?'WhatsApp ✓':'WhatsApp · revisar';}});
 const agentEngine=EPAgentEngine.create({
-  adapters:agentGmail.adapters,
+  adapters:{...agentGmail.adapters,...agentWhatsApp.adapters},
   hub:hubActions,getState:()=>state,normalize,save:saveState,refresh:render,
   documentText:a=>document.querySelector(a.kind==='job_description'?'#jd-txt':a.kind==='job_email'?'#email-mati-txt':'#em-txt-'+a.id)?.value||'',
   functions:{jd_remove,jd_drop,jd_label,jd_month,jd_clearMonth,fc_bill,fc_unbill,
@@ -5391,20 +5393,23 @@ const agentEngine=EPAgentEngine.create({
 });
 const agentRuntime=EPAgentRuntime.create({
   engine:agentEngine,fetch:(...args)=>fetch(...args),message:agentAddMessage,
-  context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser,gmail:agentGmail.context()}),
+  context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser,gmail:agentGmail.context(),whatsapp:agentWhatsApp.context()}),
   setBusy:value=>{document.getElementById('agent-send').disabled=value;document.getElementById('agent-input').disabled=value;document.querySelectorAll('[data-kitty-prompt]').forEach(b=>b.disabled=value);if(!value)kittyStatus(agentRuntime.pending?'Esperando tu confirmación':'Lista para ayudarte',false);},
   progress:label=>kittyStatus(label,true),
   finishReview:()=>document.querySelectorAll('.agent-approval-buttons button').forEach(b=>b.disabled=true),
   review:(id,reviews)=>{
     kittyStatus("Esperando tu confirmación",false);
     const resolve=(key,value,data)=>{const entity={candidate_id:'candidates',job_id:'jobs',client_id:'clients',id:data.entity}[key];if(entity){try{const row=hubActions.record(entity,value);return row.name||row.title||value;}catch{}}if(key==='entity')return EPAgentCatalog.entities[value]?.label||value;};
-    const html='<div class="agent-approval"><div class="agent-approval-title">Revisá lo que voy a hacer</div>'+reviews.map(r=>EPKittyPresentation.review(r,resolve)).join('')+'<div class="agent-approval-buttons"><button class="agent-approve" data-agent-approve="'+id+'">Confirmar acción</button><button class="agent-reject" data-agent-reject="'+id+'">Cancelar</button></div></div>';
+    document.querySelectorAll('.agent-approval').forEach(el=>el.dataset.kittyActive='false');
+    const html='<div class="agent-approval" data-kitty-active="true"><div class="agent-approval-title">Revisá lo que voy a hacer</div>'+reviews.map(r=>EPKittyPresentation.review(r,resolve)+(r.requiresConsent?'<label style="display:flex;gap:10px;font-size:12px;margin:12px 0"><input type="checkbox" class="kitty-consent"> Confirmo que este destinatario aceptó recibir mensajes de la empresa por WhatsApp.</label>':'')).join('')+'<div class="agent-approval-buttons"><button class="agent-approve" data-agent-approve="'+id+'">Confirmar acción</button><button class="agent-reject" data-agent-reject="'+id+'">Cancelar</button></div></div>';
     agentAddMessage('assistant','',html);
   },
   showResult:(plan,result)=>{
     if(result.items)agentAddMessage('assistant','',EPKittyPresentation.results(plan,result));
     if(result.boolean)agentAddMessage('assistant','Booleano:\n'+result.boolean);
     if(result.url)agentAddMessage('assistant','', '<a href="'+agentSafe(result.url)+'" target="_blank" rel="noopener">Abrir WhatsApp para '+agentSafe(result.candidate)+'</a>');
+    if(result.scheduled)agentAddMessage('assistant','Programado para '+result.scheduled_for+'. Podés pedirme consultar o cancelar tus envíos pendientes.');
+    if(result.connected&&plan.name==='whatsapp_status')agentAddMessage('assistant',result.scheduler_ready?'WhatsApp y el ejecutor están conectados.':'WhatsApp está conectado, pero falta activar el ejecutor de envíos programados.');
     if(plan.effect!=='read')agentAddMessage('assistant',result.awaiting_user?'Acción preparada. Falta seleccionar/revisar el archivo en el Hub.':result.ok===false?'La acción no se completó.':'✓ '+agentEngine.review(plan).title);
   }
 });
@@ -5415,6 +5420,7 @@ async function agentSend(){
 function kittyStatus(label,working){const el=document.getElementById('kitty-status');el.textContent=label;el.classList.toggle('working',working);}
 function initAgent(){
   const launcher=document.getElementById('agent-launcher'),panel=document.getElementById('agent-panel');if(!launcher||!panel)return;
+  document.getElementById('agent-whatsapp').addEventListener('click',async()=>{try{const info=await agentWhatsApp.status();agentAddMessage('assistant',info.scheduler_ready?'WhatsApp está conectado y listo para programar.':'WhatsApp está conectado. Falta activar la cola privada y el cron para programar envíos.');}catch(e){agentAddMessage('system',e.message);}});
   document.getElementById('agent-gmail').addEventListener('click',async()=>{try{const info=await agentGmail.status();if(info.connected){if(confirm('¿Desconectar '+info.email+' de este navegador?'))await agentGmail.disconnect();}else await agentGmail.connect();}catch(e){agentAddMessage('system',e.message);}});
   const show=visible=>{panel.classList.toggle('open',visible);panel.setAttribute('aria-hidden',String(!visible));launcher.setAttribute('aria-expanded',String(visible));if(visible){agentGmail.status().catch(()=>{});if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Hola, soy **Kitty**.\nTe ayudo a organizar el Hub y trabajar con tu correo. Contame qué necesitás o elegí una sugerencia.\n\nAntes de cambiar datos o enviar algo, siempre te voy a pedir confirmación.');document.getElementById('agent-input').focus();}else launcher.focus();};
   launcher.addEventListener('click',()=>show(!panel.classList.contains('open')));
@@ -5427,7 +5433,7 @@ function initAgent(){
   document.getElementById('agent-messages').addEventListener('click',e=>{
     const record=e.target.closest('[data-kitty-record]');if(record){openDetail(record.dataset.kittyEntity,record.dataset.kittyRecord);return;}
     const approve=e.target.closest('[data-agent-approve]'),reject=e.target.closest('[data-agent-reject]');
-    if(approve&&!approve.disabled)agentRuntime.approve(approve.dataset.agentApprove);
+    if(approve&&!approve.disabled){const checks=[...approve.closest('.agent-approval').querySelectorAll('.kitty-consent')];if(checks.some(c=>!c.checked)){agentAddMessage('system','Marcá la confirmación de consentimiento antes de programar el WhatsApp.');return;}agentRuntime.approve(approve.dataset.agentApprove);}
     if(reject&&!reject.disabled)agentRuntime.reject(reject.dataset.agentReject);
   });
 }

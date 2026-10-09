@@ -66,13 +66,17 @@
     async function execute(plan, token) {
       try {
         env.progress?.(
-          plan.name.startsWith("gmail_")
+          plan.name.startsWith("whatsapp_")
             ? plan.effect === "read"
-              ? "Consultando Gmail…"
-              : "Aplicando la acción en Gmail…"
-            : plan.effect === "read"
-              ? "Buscando en el Hub…"
-              : "Aplicando los cambios…",
+              ? "Consultando WhatsApp…"
+              : "Guardando la programación…"
+            : plan.name.startsWith("gmail_")
+              ? plan.effect === "read"
+                ? "Consultando Gmail…"
+                : "Aplicando la acción en Gmail…"
+              : plan.effect === "read"
+                ? "Buscando en el Hub…"
+                : "Aplicando los cambios…",
         );
         const output = await env.engine.execute(plan, token);
         env.showResult(plan, output);

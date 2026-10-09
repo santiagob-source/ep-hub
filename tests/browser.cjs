@@ -349,6 +349,92 @@ const handler = require("../api/agent");
     const review = page.locator(".agent-call").last();
     assert.match(await review.innerText(), /Vincular con/);
     assert.equal(await review.locator("pre").count(), 0);
+    await page.unroute("**/api/agent");
+    const waCalls = [];
+    let waTurn = 0;
+    const waCandidate = await page.evaluate(() =>
+      hubActions.save("candidates", null, {
+        name: "Eva WhatsApp",
+        phone: "+34600111222",
+      }),
+    );
+    await page.evaluate(() => {
+      window.kittyTestAuth = fbAuth;
+      fbAuth = { currentUser: { getIdToken: async () => "local-test-token" } };
+    });
+    await page.route("**/api/whatsapp", async (route) => {
+      const body = route.request().postDataJSON();
+      waCalls.push(body);
+      await route.fulfill({
+        json:
+          body.action === "prepare"
+            ? {
+                capability: "test-capability",
+                review: {
+                  title: "Programar WhatsApp",
+                  arguments: {
+                    recipient: "Eva WhatsApp",
+                    phone: "+34600111222",
+                    message: "Hola Eva",
+                    scheduled_for: "Mañana a las 10:00 (Europe/Madrid)",
+                  },
+                  requiresConsent: true,
+                  effects: "Se programará el envío.",
+                },
+              }
+            : {
+                ok: true,
+                scheduled: true,
+                scheduled_for: "Mañana a las 10:00 (Europe/Madrid)",
+              },
+      });
+    });
+    await page.route("**/api/agent", async (route) => {
+      waTurn++;
+      await route.fulfill({
+        json: {
+          response_id: "wa-" + waTurn,
+          text: waTurn === 1 ? "Voy a preparar el WhatsApp." : "Programado.",
+          calls:
+            waTurn === 1
+              ? [
+                  {
+                    name: "whatsapp_schedule",
+                    call_id: "wa-call-1",
+                    arguments: JSON.stringify({
+                      candidate_id: waCandidate.id,
+                      send_at: "2026-11-01T10:00:00+01:00",
+                      message: "Hola Eva",
+                    }),
+                  },
+                ]
+              : [],
+        },
+      });
+    });
+    await page.locator("#agent-input").fill("Programá un WhatsApp para Eva");
+    await page.locator("#agent-send").click();
+    await page.locator(".kitty-consent").waitFor();
+    assert.equal(waCalls.length, 1);
+    await page.locator(".agent-approve:enabled").click();
+    assert.equal(waCalls.length, 1);
+    assert.match(
+      await page.locator(".agent-msg.system").last().innerText(),
+      /consentimiento/,
+    );
+    await page.locator(".kitty-consent").check();
+    await page.locator(".agent-approve:enabled").click();
+    await page.waitForFunction(
+      () => !agentRuntime.busy && !agentRuntime.pending,
+    );
+    assert.equal(waCalls.length, 2);
+    assert.equal(waCalls[1].consent, true);
+    assert.equal(waCalls[1].args.phone, "+34600111222");
+    assert.equal(waCalls[1].capability, "test-capability");
+    await page.evaluate(() => {
+      fbAuth = window.kittyTestAuth;
+      delete window.kittyTestAuth;
+    });
     await page.screenshot({ path: "/tmp/kitty-desktop.png" });
     await page.setViewportSize({ width: 390, height: 844 });
     const mobile = await page.locator("#agent-panel").boundingBox();
