@@ -315,6 +315,12 @@
         }
       }
       if (entity === "reportProjects") updated.output = existing?.output || "";
+      if (entity === "placements") {
+        const linked = s.jobs.filter(j => norm(j.title) === norm(updated.job) && (!updated.client || norm(j.client) === norm(updated.client)));
+        updated.businessArea = data.businessArea || existing?.businessArea || (existing ? "Expansion Business" : linked.length === 1 ? linked[0].businessArea || "Expansion Business" : "Expansion People");
+        updated.year = Number(data.year || existing?.year || 2026);
+        if (!["Expansion People", "Expansion Business"].includes(updated.businessArea) || !Number.isInteger(updated.year) || updated.year < 2026 || updated.year > 2100) throw Error("Área o año de facturación inválidos");
+      }
       const items = list(entity);
       if (existing) items[items.indexOf(existing)] = updated;
       else items.push(updated);

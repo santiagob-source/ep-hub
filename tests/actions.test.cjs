@@ -625,3 +625,11 @@ test('forecast creation carries job area while legacy edits preserve Business an
  assert.equal(edited.businessArea,'Expansion Business');assert.equal(edited.year,2026);
  assert.throws(()=>s.hub.save('forecast',null,{year:2026.5}));
 });
+
+test('billing inherits historical area, preserves explicit year and rejects invalid years without saving',()=>{
+ const s=setup();s.state.placements.push({id:'old',title:'Histórica',amount:100,month:'Enero'});
+ s.hub.save('placements','old',{amount:200});assert.equal(s.state.placements[0].businessArea,'Expansion Business');assert.equal(s.state.placements[0].year,2026);
+ s.state.jobs.push({id:'j',title:'Nueva',client:'Clínica',businessArea:'Expansion People'});
+ const created=s.hub.save('placements',null,{title:'Factura',job:'Nueva',client:'Clínica',year:2027});assert.equal(created.businessArea,'Expansion People');assert.equal(created.year,2027);
+ const before=JSON.stringify(s.state.placements);assert.throws(()=>s.hub.save('placements',created.id,{year:2027.5}),/inválidos/);assert.equal(JSON.stringify(s.state.placements),before);
+});

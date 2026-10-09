@@ -104,6 +104,8 @@
       label: "facturación",
       required: "client",
       defaults: {
+        businessArea: "Expansion People",
+        year: 2026,
         consultant: "Santi",
         month: "",
         amount: 0,
@@ -424,6 +426,7 @@
           "reports",
           "fichaje",
           "metricas",
+          "review",
         ],
       },
       entity: { type: "string", enum: ["candidates", "clients", "jobs"] },
@@ -592,6 +595,7 @@
     ["schedule_id"],
     "write",
   );
+  add("attach_uploaded_document", "Guarda un adjunto seleccionado por el usuario en un cliente y su vacante, después de confirmar. Resolver IDs con search_records. No lee el contenido del archivo.", {file_id:{type:"string"},client_id:{type:"string"},job_id:{type:"string"}}, ["file_id","client_id","job_id"], "write");
   function effect(def, args) {
     return def.effect === "dynamic"
       ? ["upload", "remove", "upload_signed", "attach_proposal"].includes(

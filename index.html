@@ -1053,20 +1053,21 @@ tr:hover td { background: #FAFBFC; }
       <div class="kitty-toolbar"><span id="kitty-status" class="kitty-status" role="status">Lista para ayudarte</span><button id="agent-gmail" type="button">Conectar Gmail</button><button id="agent-whatsapp" type="button">WhatsApp</button></div>
       <div id="agent-messages" class="agent-messages" role="log" aria-label="Conversación con La Kitty" aria-live="polite"></div>
       <div class="kitty-shortcuts" aria-label="Sugerencias"><button type="button" data-kitty-prompt="Buscá mis tareas pendientes para hoy.">✓ Mi día</button><button type="button" data-kitty-prompt="Buscá mis últimos cinco correos y resumilos.">✉ Mis correos</button><button type="button" data-kitty-prompt="Quiero buscar candidatos. Preguntame qué perfil necesito.">⌕ Candidatos</button><button type="button" data-kitty-prompt="Quiero crear una tarea. Preguntame qué tengo que hacer y con quién vincularla.">＋ Crear tarea</button></div>
-      <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
+      <div class="agent-composer"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><button id="agent-attach" class="ghost-button" type="button">📎 Adjuntar</button><input id="agent-file" type="file" accept="application/pdf,image/png,image/jpeg" hidden><span id="agent-file-name" style="font-size:12px"></span><button id="agent-file-remove" type="button" class="ghost-button" hidden>Quitar</button></div><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/workspace.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/text-encoding.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-color-nav-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/workspace.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/documents.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-documents-review-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-documents-review-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1080,6 +1081,7 @@ const navGroups = [
     label: "Gestión",
     items: [
       { id: "clients", icon: "🏢", title: "Clientes" },
+      { id: "review", icon: "🔎", title: "Revisión" },
       { id: "candidates", icon: "👥", title: "Candidatos" },
       { id: "jobs", icon: "📋", title: "Vacantes" },
       { id: "tasks", icon: "✅", title: "Tareas" },
@@ -1089,7 +1091,7 @@ const navGroups = [
     label: "Métricas",
     items: [
       { id: "metricas", icon: "📊", title: "Resumen" },
-      { id: "forecast", icon: "📅", title: "Previsión" },
+      { id: "forecast", icon: "📅", title: "Forecast" },
       { id: "placements", icon: "💶", title: "Facturación" },
       { id: "goals", icon: "🏆", title: "Objetivos" },
     ],
@@ -1142,7 +1144,7 @@ let currentView = "dashboard";
 let timerHandle = null;
 const activeFilters = {};
 let detailContext = null;
-let placementContext = { quarter: null, month: null };
+let placementContext = { area:'Expansion People',year:null,quarter:null,month:null };
 let navigationHistoryReady = false;
 let suppressNavigationHistory = false;
 let appHistoryDepth = 0;
@@ -1685,7 +1687,7 @@ function setView(view) {
   const item = getAllNavItems().find((entry) => entry.id === view);
   title.textContent = item.title;
   eyebrow.textContent = item.group;
-  quickAdd.style.display = ["dashboard", "pomodoro", "reports", "assistant", "jobs", "clients", "candidates", "forecast"].includes(view) ? "none" : "inline-flex";
+  quickAdd.style.display = ["dashboard", "pomodoro", "reports", "assistant", "jobs", "clients", "candidates", "forecast", "placements", "review"].includes(view) ? "none" : "inline-flex";
   renderNav();
   render();
   recordNavigationState();
@@ -1710,6 +1712,7 @@ function render() {
     candidates: () => renderDirectoryView("candidates"),
     clients: () => renderDirectoryView("clients"),
     jobs: renderJobs,
+    review: renderDataReview,
     tasks: renderTasks,
     calendar: renderCalendar,
     routine: renderRoutineSchedule,
@@ -1781,11 +1784,11 @@ function renderDashboard(){
   const billing=(state.forecast||[]).filter(f=>!f.billed);
   const link=(type,item,label)=>'<button class="workspace-link" data-open-detail="'+type+':'+agentSafe(item.id)+'">'+agentSafe(label)+'</button>';
   const panel=(name,body)=>'<section class="panel"><div class="panel-header"><h2 class="panel-title">'+name+'</h2></div><div class="panel-body">'+body+'</div></section>';
-  app.innerHTML='<p class="workspace-hint">Tu trabajo y los datos pendientes, en un solo lugar.</p><div class="grid two">'+
+  app.innerHTML='<div class="toolbar"><p class="workspace-hint">Tu trabajo y los datos pendientes, en un solo lugar.</p><button class="ghost-button" data-view="review">Revisar clientes y vacantes</button></div><div class="grid two">'+
     panel('Tareas y contactos próximos',due.slice(0,6).map(t=>'<div class="workspace-item">'+agentSafe(t.title)+'<small class="workspace-sub">'+(t.due?new Date(t.due).toLocaleString('es-ES',{timeZone:'Europe/Madrid'}):'Prioridad alta')+'</small></div>').join('')+contacts.slice(0,4).map(c=>'<div class="workspace-item">'+link('candidate',c,'Contactar: '+c.name)+'</div>').join('')+(!due.length&&!contacts.length?'<p>Sin pendientes próximos.</p>':'')+'<button class="ghost-button" data-view="tasks">Ver todas las tareas</button>')+
     panel('Vacantes para revisar · '+jobs.length,jobs.slice(0,6).map(j=>'<div class="workspace-item">'+link('job',j,j.title)+'<small class="workspace-sub">'+agentSafe(j.client||'Sin cliente')+' · '+EPWorkspace.labels[EPWorkspace.status(j)]+' · '+EPWorkspace.area(j)+'</small></div>').join('')+'<button class="ghost-button" data-view="jobs">Ver vacantes</button>')+
     panel('Clientes con datos pendientes · '+incomplete.length,incomplete.slice(0,4).map(c=>'<div class="workspace-item">'+link('client',c,c.name)+clientMissingHtml(c)+'</div>').join('')+(!incomplete.length?'<p>Las fichas están completas.</p>':'')+'<button class="ghost-button" onclick="activeFilters.clients=\'Datos pendientes\';setView(\'clients\')">Completar clientes</button>')+
-    panel('Previsión pendiente de facturar · '+billing.length,billing.slice(0,5).map(f=>'<div class="workspace-item">'+agentSafe(f.title||f.clientName||'Sin título')+'<small class="workspace-sub">'+agentSafe(f.month||'Sin mes')+' · '+money(f.amount||0)+'</small></div>').join('')+'<button class="ghost-button" data-view="forecast">Ver previsión</button>')+'</div>';
+    panel('Forecast pendiente de facturar · '+billing.length,billing.slice(0,5).map(f=>'<div class="workspace-item">'+agentSafe(f.title||f.clientName||'Sin título')+'<small class="workspace-sub">'+agentSafe(f.month||'Sin mes')+' · '+money(f.amount||0)+'</small></div>').join('')+'<button class="ghost-button" data-view="forecast">Ver forecast</button>')+'</div>';
 }
 
 function dash_hide(w) {
@@ -2184,7 +2187,7 @@ function editForecast(id) {
   modal.className = "modal show";
   modal.innerHTML =
     "<div class='modal-card'>" +
-      "<div class='panel-header'><h2 class='panel-title'>"+(id&&(state.forecast||[]).find(function(f){return f.id===id;})?"Editar previsión":"Añadir previsión")+"</h2>" +
+      "<div class='panel-header'><h2 class='panel-title'>"+(id&&(state.forecast||[]).find(function(f){return f.id===id;})?"Editar forecast":"Añadir forecast")+"</h2>" +
         "<button class='icon-button' type='button' data-close-modal>&times;</button></div>" +
       "<form class='panel-body form-grid'>" +
         "<div class='field'><label>Titulo</label><input name='title' value='"+(record.title||"").replace(/'/g,"&#39;")+"' placeholder='Nombre del job'/></div>" +
@@ -2215,7 +2218,7 @@ function editForecast(id) {
       if (job && !job.forecastMonth) job.forecastMonth = updated.month;
     }
     saveState(); modal.remove(); renderForecast();
-    showToast("Previsión guardada");
+    showToast("Forecast guardada");
   });
   modal.addEventListener("click", function(e){
     if (e.target.matches("[data-close-modal]")||e.target===modal) modal.remove();
@@ -2257,7 +2260,7 @@ function renderForecast() {
   const sum=items=>items.reduce((total,f)=>total+(Number(f.amount)||0),0);
   const tabs='<div class="workspace-tabs">'+['Expansion People','Expansion Business','Todos'].map(a=>'<button class="ghost-button '+(a===area?'selected':'')+'" data-fc-area="'+a+'">'+a+'</button>').join('')+'</div>';
   const heading='<p class="workspace-hint">'+area+(forecastContext.year?' · '+forecastContext.year:'')+(forecastContext.quarter?' · '+forecastContext.quarter:'')+(forecastContext.month?' · '+forecastContext.month:'')+'</p>';
-  const add='<button class="primary-button" onclick="editForecast(null)">+ Nueva previsión</button>';
+  const add='<button class="primary-button" onclick="editForecast(null)">+ Nueva forecast</button>';
   if(!forecastContext.year){
     const years=[...new Set([2026,...records.map(EPWorkspace.year)])].sort((a,b)=>a-b);
     app.innerHTML=tabs+heading+'<div class="toolbar"><p>Elegí el año para ver sus trimestres.</p>'+add+'</div><div class="quarter-grid">'+years.map(year=>{const items=records.filter(f=>EPWorkspace.year(f)===year);return '<button class="quarter-card" data-fc-year="'+year+'"><span>'+year+'</span><strong>'+money(sum(items))+'</strong><small>'+items.length+' registros</small></button>';}).join('')+'</div>';return;
@@ -2289,7 +2292,7 @@ function renderForecast() {
       "<td>"+billBtn+"</td>" +
       "<td><div class='row-actions'>"+editBtn+delBtn+"</div></td>" +
     "</tr>";
-  }).join("") || "<tr><td colspan='6' style='text-align:center;color:#94A3B8;padding:22px'>Sin previsiones en "+forecastContext.month+".</td></tr>";
+  }).join("") || "<tr><td colspan='6' style='text-align:center;color:#94A3B8;padding:22px'>Sin forecasts en "+forecastContext.month+".</td></tr>";
   var total = items.reduce(function(s,f){return s+(parseFloat(f.amount)||0);}, 0);
   app.innerHTML = tabs+heading+
     "<div class='toolbar'>" +
@@ -2370,53 +2373,25 @@ function fc_unbill(id) {
 }
 
 function renderPlacements() {
-  if (!placementContext.quarter) {
-    app.innerHTML = `
-      <div class="toolbar">
-        <p style="margin:0;color:var(--muted)">Elige un trimestre para ver los meses y la facturación.</p>
-        <button class="primary-button" type="button" data-add="placements">Añadir facturación</button>
-      </div>
-      ${renderBillingDashboard(state.placements)}
-      <div class="quarter-grid">
-        ${Object.entries(quarters).map(([quarter, months]) => {
-          const items = getPlacementsForMonths(months);
-          const total = sumAmount(items);
-          return `<button class="quarter-card" type="button" data-placement-quarter="${quarter}">
-            <span>${quarter}</span>
-            <strong>${money(total)}</strong>
-            <small>${months.join(" · ")} · ${items.length} registros</small>
-          </button>`;
-        }).join("")}
-      </div>
-    `;
-    return;
+  placementContext.area ||= 'Expansion People';
+  const area=placementContext.area;
+  const records=state.placements.filter(p=>area==='Todos'||EPWorkspace.forecastArea(p)===area);
+  const tabs='<div class="workspace-tabs">'+['Expansion People','Expansion Business','Todos'].map(a=>'<button class="ghost-button '+(a===area?'selected':'')+'" data-placement-area="'+a+'">'+a+'</button>').join('')+'</div>';
+  const heading='<p class="workspace-hint">'+area+(placementContext.year?' · '+placementContext.year:'')+(placementContext.quarter?' · '+placementContext.quarter:'')+(placementContext.month?' · '+placementContext.month:'')+'</p>';
+  const add='<button class="primary-button" data-add="placements">+ Añadir facturación</button>';
+  if(!placementContext.year){
+    const years=[...new Set([2026,...records.map(EPWorkspace.year)])].sort((a,b)=>a-b);
+    app.innerHTML=tabs+heading+'<div class="toolbar"><p>Elegí el año para ver su facturación.</p>'+add+'</div><div class="quarter-grid">'+years.map(year=>{const items=records.filter(p=>EPWorkspace.year(p)===year);return '<button class="quarter-card" data-placement-year="'+year+'"><span>'+year+'</span><strong>'+money(sumAmount(items))+'</strong><small>'+items.length+' registros</small></button>';}).join('')+'</div>';return;
   }
-
-  if (!placementContext.month) {
-    const months = quarters[placementContext.quarter];
-    app.innerHTML = `
-      <div class="toolbar">
-        <button class="ghost-button" type="button" data-placement-back="quarters">← Trimestres</button>
-        <button class="primary-button" type="button" data-add="placements">Añadir facturación</button>
-      </div>
-      ${renderBillingDashboard(getPlacementsForMonths(months))}
-      <div class="month-grid">
-        ${months.map((month) => {
-          const items = getPlacementsForMonths([month]);
-          const total = sumAmount(items);
-          return `<button class="month-card" type="button" data-placement-month="${month}">
-            <span>${month}</span>
-            <strong>${money(total)}</strong>
-            <small>${items.length} registros</small>
-          </button>`;
-        }).join("")}
-      </div>
-    `;
-    return;
+  const yearRecords=records.filter(p=>EPWorkspace.year(p)===placementContext.year);
+  if(!placementContext.quarter){
+    app.innerHTML=tabs+heading+'<div class="toolbar"><button class="ghost-button" data-placement-back="years">← Años</button>'+add+'</div><div class="quarter-grid">'+Object.entries(quarters).map(([q,months])=>{const items=yearRecords.filter(p=>months.includes(p.month));return '<button class="quarter-card" data-placement-quarter="'+q+'"><span>'+q+'</span><strong>'+money(sumAmount(items))+'</strong><small>'+months.join(' · ')+'</small></button>';}).join('')+'</div>';return;
   }
-
-  const items = getPlacementsForMonths([placementContext.month]);
-  app.innerHTML = `
+  if(!placementContext.month){
+    app.innerHTML=tabs+heading+'<div class="toolbar"><button class="ghost-button" data-placement-back="quarters">← Trimestres</button>'+add+'</div><div class="month-grid">'+quarters[placementContext.quarter].map(month=>{const items=yearRecords.filter(p=>p.month===month);return '<button class="month-card" data-placement-month="'+month+'"><span>'+month+'</span><strong>'+money(sumAmount(items))+'</strong><small>'+items.length+' registros</small></button>';}).join('')+'</div>';return;
+  }
+  const items=yearRecords.filter(p=>p.month===placementContext.month);
+  app.innerHTML = tabs+heading+`
     <div class="toolbar">
       <div style="display:flex;gap:10px;align-items:center">
         <button class="ghost-button" type="button" data-placement-back="months">← Meses</button>
@@ -2424,7 +2399,7 @@ function renderPlacements() {
       </div>
       <button class="primary-button" type="button" data-add="placements">Añadir facturación</button>
     </div>
-    ${renderBillingDashboard(items)}
+    <p class="workspace-hint">Total facturado: ${money(sumAmount(items))}</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Consultor</th><th>Importe</th><th>Cliente</th><th>Job</th><th></th></tr></thead>
@@ -2446,6 +2421,22 @@ function renderPlacements() {
       </table>
     </div>
   `;
+}
+
+function diagnosticText(){
+  const audit=EPWorkspace.audit(state);
+  return ['REVISIÓN DEL HUB', 'Clientes con datos pendientes: '+audit.clients.length,
+    ...audit.clients.map(r=>r.client.name+' — Contacto: '+(r.missing.contact.map(x=>x[1]).join(', ')||'completo')+'; Facturación: '+(r.missing.billing.map(x=>x[1]).join(', ')||'completa')),
+    'Vacantes para revisar (pocos = menos de 3 candidatos activos): '+audit.jobs.length,
+    ...audit.jobs.map(r=>r.job.title+' — '+(r.job.client||'sin cliente')+' — '+EPWorkspace.area(r.job)+' — '+r.count+' candidatos activos — '+EPWorkspace.labels[EPWorkspace.status(r.job)]+(r.gaps.length?' — Falta: '+r.gaps.join(', '):''))].join('\n');
+}
+async function copyDiagnostic(){
+  try {await navigator.clipboard.writeText(diagnosticText());showToast('Diagnóstico copiado. Podés pegarlo en el chat.');}
+  catch{openModal({title:'Copiá este diagnóstico',fields:[['diagnostic','Diagnóstico','textarea']],values:{diagnostic:diagnosticText()},onSave:()=>{}});}
+}
+function renderDataReview(){
+  const audit=EPWorkspace.audit(state),list=items=>items.map(x=>x[1]).join(', ')||'Completo';
+  app.innerHTML='<div class="toolbar"><p class="workspace-hint">Pocos candidatos = 1 o 2 activos. Se excluyen rechazados, no presentados y placements. Las vacantes cubiertas o canceladas quedan fuera.</p><button class="ghost-button" onclick="copyDiagnostic()">Copiar diagnóstico</button></div><div class="grid two"><section class="panel panel-body"><h2 class="panel-title">'+audit.clients.length+' clientes con datos pendientes</h2><p>Completá primero el contacto; los datos fiscales se revisan antes de facturar.</p></section><section class="panel panel-body"><h2 class="panel-title">'+audit.jobs.filter(r=>!r.count).length+' vacantes sin candidatos · '+audit.jobs.filter(r=>r.count>0&&r.count<3).length+' con pocos</h2><p>Revisá si siguen vigentes y qué búsqueda necesitan.</p></section></div><h2 style="margin-top:24px">Clientes</h2><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contacto pendiente</th><th>Facturación pendiente</th><th></th></tr></thead><tbody>'+audit.clients.map(r=>'<tr><td><button class="workspace-link" data-open-detail="client:'+agentSafe(r.client.id)+'">'+agentSafe(r.client.name)+'</button></td><td>'+list(r.missing.contact)+'</td><td>'+list(r.missing.billing)+'</td><td><button class="ghost-button" data-edit="clients:'+agentSafe(r.client.id)+'">Completar</button></td></tr>').join('')+(audit.clients.length?'':'<tr><td colspan="4">No hay datos pendientes.</td></tr>')+'</tbody></table></div><h2 style="margin-top:24px">Vacantes para revisar</h2><div class="table-wrap"><table><thead><tr><th>Vacante / cliente</th><th>Área</th><th>Estado</th><th>Candidatos activos</th><th>Revisar</th></tr></thead><tbody>'+audit.jobs.map(r=>'<tr><td><button class="workspace-link" data-open-detail="job:'+agentSafe(r.job.id)+'">'+agentSafe(r.job.title)+'</button><small class="workspace-sub">'+agentSafe(r.job.client||'Sin cliente')+'</small></td><td>'+EPWorkspace.area(r.job)+'</td><td>'+EPWorkspace.labels[EPWorkspace.status(r.job)]+'</td><td>'+r.count+'</td><td>'+(!r.count?'Confirmar vigencia y comenzar búsqueda':r.count<3?'Ampliar búsqueda':'Completar ficha')+(r.gaps.length?' · Falta '+r.gaps.join(', '):'')+'</td></tr>').join('')+(audit.jobs.length?'':'<tr><td colspan="5">No hay vacantes con pocos candidatos o datos básicos pendientes.</td></tr>')+'</tbody></table></div>';
 }
 
 function findJobsForClient(clientName) {
@@ -2532,8 +2523,13 @@ function renderClientDetail(id) {
       </div>
     </section>
     <section class="panel panel-body" style="margin-top:18px"><h2 class="panel-title">Datos pendientes</h2>${clientMissingHtml(client)}<button class="ghost-button" data-edit="clients:${client.id}">Completar datos</button></section>
+    ${renderRecordDocuments(client)}
     ${renderClientProposals(client)}
   `;
+}
+
+function renderRecordDocuments(record){
+  return '<section class="panel panel-body" style="margin-top:18px"><h2 class="panel-title">Documentos adjuntos</h2>'+((record.documents||[]).map(d=>{try{const file=(state.documentFiles||[]).find(f=>f.id===d.id);EPAgentDocuments.valid({...file,data:file?.encoded});return '<p><a download="'+agentSafe(d.name)+'" href="'+agentSafe(file.encoded)+'">📎 '+agentSafe(d.name)+'</a></p>';}catch{return '';}}).join('')||'<p class="hint">Adjuntá una factura o documento desde La Kitty e indicá el cliente y la vacante.</p>')+'</section>';
 }
 
 function renderCandidateDetail(id) {
@@ -2787,7 +2783,7 @@ function renderJobDetail(id) {
       "<div class='panel-body' style='overflow-x:auto'>" +
         "<div style='display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:9px;min-width:860px'>" + pipelineHtml + "</div>" +
       "</div>" +
-    "</section>";
+    "</section>" + renderRecordDocuments(job);
 }
 
 function jd_status(jobId,val){
@@ -2836,8 +2832,8 @@ function jd_month(jobId,type,month){
     j.billingMonth=month;
     j.jobStatus="Facturado";
     if(inv>0){
-      var exists=state.placements.find(function(p){return p.job===j.title&&p.month===month;});
-      if(!exists) state.placements.push({id:uid(),consultant:j.owner||"Santi",month:month,amount:inv,client:j.client,job:j.title,date:new Date().toISOString().split("T")[0]});
+      var exists=state.placements.find(function(p){return p.job===j.title&&p.month===month&&EPWorkspace.year(p)===2026&&EPWorkspace.forecastArea(p)===EPWorkspace.area(j);});
+      if(!exists) state.placements.push({id:uid(),businessArea:EPWorkspace.area(j),year:2026,consultant:j.owner||"Santi",month:month,amount:inv,client:j.client,job:j.title,date:new Date().toISOString().split("T")[0]});
     }
     // Also mark forecast as billed if exists
     if(state.forecast){
@@ -3291,7 +3287,7 @@ function editBilling(id) {
   var consultants = [...new Set([...state.goals.map(g=>g.consultant), ...state.placements.map(p=>p.consultant), state.currentUser].filter(Boolean))];
   var allMonths = Object.values(quarters).flat();
   var visibleMonths = placementContext.month ? [placementContext.month] : placementContext.quarter ? quarters[placementContext.quarter] : allMonths;
-  var record = state.placements.find(p=>p.id===id) || {id:uid(), consultant:state.currentUser, month:placementContext.month||visibleMonths[0], amount:"", client:"", job:""};
+  var record = state.placements.find(p=>p.id===id) || {id:uid(), businessArea:placementContext.area==='Todos'?'Expansion People':placementContext.area||'Expansion People', year:placementContext.year||2026, consultant:state.currentUser, month:placementContext.month||visibleMonths[0], amount:"", client:"", job:""};
 
   var clientNames = [...new Set([...state.clients.map(c=>c.name), ...state.placements.map(p=>p.client)].filter(Boolean))];
   var clientOpts = clientNames.map(c=>`<option value="${c}" ${record.client===c?"selected":""}>${c}</option>`).join("");
@@ -3306,6 +3302,8 @@ function editBilling(id) {
     <div class="modal-card">
       <div class="panel-header"><h2 class="panel-title">${id?"Editar facturación":"Añadir facturación"}</h2><button class="icon-button" type="button" data-close-modal>×</button></div>
       <form class="panel-body form-grid">
+        <div class="field"><label>Área</label><select name="businessArea">${['Expansion People','Expansion Business'].map(a=>`<option ${EPWorkspace.forecastArea(record)===a?'selected':''}>${a}</option>`).join('')}</select></div>
+        <div class="field"><label>Año</label><input name="year" type="number" min="2026" max="2100" value="${EPWorkspace.year(record)}"/></div>
         <div class="field"><label>Consultor</label><select name="consultant">${conOpts}</select></div>
         <div class="field"><label>Mes</label><select name="month">${monthOpts}</select></div>
         <div class="field"><label>Importe (€)</label><input name="amount" type="number" value="${record.amount||""}"/></div>
@@ -3330,7 +3328,9 @@ function editBilling(id) {
 
   modal.querySelector("[data-save-billing]").addEventListener("click", () => {
     var data = Object.fromEntries(new FormData(modal.querySelector("form")).entries());
-    var updated = hubActions.save("placements", id || null, data);
+    var updated;
+    try {updated=hubActions.save("placements",id||null,{...data,year:Number(data.year)});}
+    catch(error){showToast(error.message);return;}
     saveState();
     modal.remove();
     renderPlacements();
@@ -3680,9 +3680,13 @@ document.addEventListener("click", (event) => {
     render();
   }
 
+  const billingArea=event.target.closest('[data-placement-area]');
+  if(billingArea){placementContext={area:billingArea.dataset.placementArea,year:null,quarter:null,month:null};renderPlacements();return;}
+  const billingYear=event.target.closest('[data-placement-year]');
+  if(billingYear){placementContext.year=Number(billingYear.dataset.placementYear);placementContext.quarter=null;placementContext.month=null;renderPlacements();return;}
   const placementQuarter = event.target.closest("[data-placement-quarter]");
   if (placementQuarter) {
-    placementContext = { quarter: placementQuarter.dataset.placementQuarter, month: null };
+    placementContext.quarter=placementQuarter.dataset.placementQuarter;placementContext.month=null;
     renderPlacements();
   }
 
@@ -3694,7 +3698,9 @@ document.addEventListener("click", (event) => {
 
   const placementBack = event.target.closest("[data-placement-back]");
   if (placementBack) {
-    placementContext = placementBack.dataset.placementBack === "quarters" ? { quarter: null, month: null } : { quarter: placementContext.quarter, month: null };
+    if(placementBack.dataset.placementBack==='years'){placementContext.year=null;placementContext.quarter=null;}
+    else if(placementBack.dataset.placementBack==='quarters')placementContext.quarter=null;
+    placementContext.month=null;
     renderPlacements();
   }
 
@@ -5236,7 +5242,7 @@ function renderMetricas() {
     {label:"Ofertas activas", value:ofertas, sub:"pendientes", color:"#D97706"},
     {label:"Placements este mes", value:placements_month, sub:money(revenue_month), color:"#059669"},
     {label:"Placements esta semana", value:placements_week, sub:"ultimos 7 dias", color:"#16A34A"},
-    {label:"Previsión del mes", value:money(forecast_month), sub:"previsto facturar", color:"#2563EB", isMoney:true},
+    {label:"Forecast del mes", value:money(forecast_month), sub:"previsto facturar", color:"#2563EB", isMoney:true},
     {label:"Candidatos totales", value:cands_total, sub:"en la app", color:"#64748B"},
   ];
 
@@ -5298,8 +5304,9 @@ function agentAddMessage(role,text,html){
 }
 const agentGmail=EPAgentGmail.create({user:()=>fbAuth?.currentUser,changed:info=>{const b=document.getElementById("agent-gmail");if(b){b.textContent=info.connected?"Gmail: "+info.email:"Conectar Gmail";b.title=info.connected?"Clic para desconectar esta cuenta":"Conectar tu cuenta de Google";}}});
 const agentWhatsApp=EPAgentWhatsApp.create({user:()=>fbAuth?.currentUser,hub:hubActions,consent:()=>{const checks=[...document.querySelectorAll('.agent-approval[data-kitty-active="true"] .kitty-consent')];return checks.length>0&&checks.every(x=>x.checked);},changed:info=>{const b=document.getElementById('agent-whatsapp');b.textContent=info.scheduler_ready?'WhatsApp ✓':'WhatsApp · revisar';}});
+const agentDocuments=EPAgentDocuments.create({getState:()=>state,uid,save:saveState,changed:files=>{document.getElementById("agent-file-name").textContent=files[0]?.name||"";document.getElementById("agent-file-remove").hidden=!files.length;}});
 const agentEngine=EPAgentEngine.create({
-  adapters:{...agentGmail.adapters,...agentWhatsApp.adapters},
+  adapters:{...agentGmail.adapters,...agentWhatsApp.adapters,...agentDocuments.adapters},
   hub:hubActions,getState:()=>state,normalize,save:saveState,refresh:render,
   documentText:a=>document.querySelector(a.kind==='job_description'?'#jd-txt':a.kind==='job_email'?'#email-mati-txt':'#em-txt-'+a.id)?.value||'',
   functions:{jd_remove,jd_drop,jd_label,jd_month,jd_clearMonth,fc_bill,fc_unbill,
@@ -5310,7 +5317,7 @@ const agentEngine=EPAgentEngine.create({
 });
 const agentRuntime=EPAgentRuntime.create({
   engine:agentEngine,fetch:(...args)=>fetch(...args),message:agentAddMessage,
-  context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser,gmail:agentGmail.context(),whatsapp:agentWhatsApp.context()}),
+  context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser,gmail:agentGmail.context(),whatsapp:agentWhatsApp.context(),attachments:agentDocuments.context()}),
   setBusy:value=>{document.getElementById('agent-send').disabled=value;document.getElementById('agent-input').disabled=value;document.querySelectorAll('[data-kitty-prompt]').forEach(b=>b.disabled=value);if(!value)kittyStatus(agentRuntime.pending?'Esperando tu confirmación':'Lista para ayudarte',false);},
   progress:label=>kittyStatus(label,true),
   finishReview:()=>document.querySelectorAll('.agent-approval-buttons button').forEach(b=>b.disabled=true),
@@ -5349,6 +5356,9 @@ function initAgent(){
   document.getElementById('agent-expand').addEventListener('click',e=>{const expanded=panel.classList.toggle('expanded');e.currentTarget.setAttribute('aria-pressed',String(expanded));e.currentTarget.setAttribute('aria-label',expanded?'Reducir La Kitty':'Ampliar La Kitty');});
   panel.addEventListener('keydown',e=>{if(e.key==='Escape'){show(false);e.stopPropagation();}});
   document.querySelectorAll('[data-kitty-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=document.getElementById('agent-input');input.value=b.dataset.kittyPrompt;input.focus();}));
+  document.getElementById('agent-attach').addEventListener('click',()=>{if(!agentRuntime.busy&&!agentRuntime.pending)document.getElementById('agent-file').click();});
+  document.getElementById('agent-file-remove').addEventListener('click',()=>{if(!agentRuntime.busy&&!agentRuntime.pending)agentDocuments.clear();});
+  document.getElementById('agent-file').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(agentRuntime.busy||agentRuntime.pending)throw Error('Primero confirmá o cancelá la acción pendiente.');if(file.size>2*1024*1024)throw Error('El máximo es 2 MB por archivo.');const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});agentDocuments.select({name:file.name,type:file.type,size:file.size,data});document.getElementById('agent-input').focus();}catch(err){agentAddMessage('system',err.message||'No pude leer el archivo.');}});
   document.getElementById('agent-send').addEventListener('click',agentSend);
   document.getElementById('agent-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();agentSend();}});
   document.getElementById('agent-messages').addEventListener('click',e=>{

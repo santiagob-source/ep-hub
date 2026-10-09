@@ -23,3 +23,8 @@ test('legacy forecasts belong to Business in 2026 and explicit years and areas s
  assert.equal(W.year({year:2027}),2027);
  assert.deepEqual(legacy,{title:'Histórica',amount:1000,month:'Enero'});
 });
+
+test('audit counts unique active candidates and ignores closed processes',()=>{
+ const state={clients:[{id:'c',name:'Clínica'}],jobs:[{id:'j',title:'Médico',client:'Clínica',owner:'Santi',pipeline:[{candidateId:'a',name:'Ana'},{candidateId:'a',name:'Ana'},{candidateId:'b',name:'B',label:'Rechazado'}]},{id:'closed',status:'Cancelado',pipeline:[]}]};
+ const before=JSON.stringify(state),result=W.audit(state);assert.equal(result.clients.length,1);assert.equal(result.jobs.length,1);assert.equal(result.jobs[0].count,1);assert.equal(JSON.stringify(state),before);
+});

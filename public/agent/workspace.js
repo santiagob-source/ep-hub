@@ -11,5 +11,14 @@
   };}
   function year(record){return Number(record.year)||2026;}
   function forecastArea(record){return record.businessArea||'Expansion Business';}
-  return {states,labels,colors,status,area,active,missing,year,forecastArea};
+  function audit(state){
+    const clients=(state.clients||[]).map(client=>({client,missing:missing(client)})).filter(r=>r.missing.contact.length||r.missing.billing.length);
+    const jobs=(state.jobs||[]).filter(active).map(job=>{
+      const unique=new Set((job.pipeline||[]).filter(p=>!['Rechazado','No presentado','Placement'].includes(p.label)).map(p=>p.candidateId||String(p.name||'').trim().toLowerCase()).filter(Boolean));
+      const gaps=[['client','Cliente'],['owner','Responsable']].filter(([key])=>!String(job[key]||'').trim()).map(x=>x[1]);
+      return {job,count:unique.size,gaps};
+    }).filter(r=>r.count<3||r.gaps.length).sort((a,b)=>a.count-b.count);
+    return {clients,jobs};
+  }
+  return {states,labels,colors,status,area,active,missing,year,forecastArea,audit};
 });
