@@ -986,7 +986,7 @@ tr:hover td { background: #FAFBFC; }
 }
 
 
-/* Kitty — conversational workspace */
+/* La Kitty — conversational workspace */
 .agent-launcher{position:fixed;right:24px;bottom:24px;z-index:9000;border:0;border-radius:999px;background:#b91c73;color:#fff;padding:15px 24px;font:700 15px 'Plus Jakarta Sans',sans-serif;box-shadow:0 8px 30px #b91c7333;cursor:pointer}
 .agent-panel{position:fixed;right:20px;top:20px;bottom:20px;z-index:9001;width:min(680px,calc(100vw - 40px));background:#fff;border:1px solid #f1d5e5;border-radius:24px;box-shadow:0 24px 100px #b91c7333;display:none;flex-direction:column;overflow:hidden}
 .agent-panel.open{display:flex}.agent-panel.expanded{inset:20px;width:auto;max-width:1200px;margin:auto}
@@ -1034,24 +1034,24 @@ tr:hover td { background: #FAFBFC; }
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <button id="agent-launcher" class="agent-launcher" type="button" aria-label="Abrir Kitty" aria-controls="agent-panel" aria-expanded="false">✦ Kitty</button>
-    <section id="agent-panel" class="agent-panel" aria-label="Kitty, tu asistente" aria-hidden="true">
-      <div class="agent-head"><div><strong>✦ Kitty</strong><small>Tu Hub y tu correo, en una conversación</small></div><div class="kitty-head-actions"><button id="agent-expand" class="kitty-expand" type="button" aria-label="Ampliar Kitty" aria-pressed="false">⤢</button><button id="agent-close" class="agent-close" type="button" aria-label="Cerrar Kitty">×</button></div></div>
+    <button id="agent-launcher" class="agent-launcher" type="button" aria-label="Abrir La Kitty" aria-controls="agent-panel" aria-expanded="false">✦ La Kitty</button>
+    <section id="agent-panel" class="agent-panel" aria-label="La Kitty, tu asistente" aria-hidden="true">
+      <div class="agent-head"><div><strong>✦ La Kitty</strong><small>Tu Hub y tu correo, en una conversación</small></div><div class="kitty-head-actions"><button id="agent-expand" class="kitty-expand" type="button" aria-label="Ampliar La Kitty" aria-pressed="false">⤢</button><button id="agent-close" class="agent-close" type="button" aria-label="Cerrar La Kitty">×</button></div></div>
       <div class="kitty-toolbar"><span id="kitty-status" class="kitty-status" role="status">Lista para ayudarte</span><button id="agent-gmail" type="button">Conectar Gmail</button><button id="agent-whatsapp" type="button">WhatsApp</button></div>
-      <div id="agent-messages" class="agent-messages" role="log" aria-label="Conversación con Kitty" aria-live="polite"></div>
+      <div id="agent-messages" class="agent-messages" role="log" aria-label="Conversación con La Kitty" aria-live="polite"></div>
       <div class="kitty-shortcuts" aria-label="Sugerencias"><button type="button" data-kitty-prompt="Buscá mis tareas pendientes para hoy.">✓ Mi día</button><button type="button" data-kitty-prompt="Buscá mis últimos cinco correos y resumilos.">✉ Mis correos</button><button type="button" data-kitty-prompt="Quiero buscar candidatos. Preguntame qué perfil necesito.">⌕ Candidatos</button><button type="button" data-kitty-prompt="Quiero crear una tarea. Preguntame qué tengo que hacer y con quién vincularla.">＋ Crear tarea</button></div>
-      <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para Kitty" placeholder="Pedile a Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
+      <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/phone.js?v=20261009-errors-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-errors-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-errors-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-errors-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-errors-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-errors-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-errors-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-errors-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-errors-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-lakitty-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-lakitty-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-lakitty-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-lakitty-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-lakitty-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-lakitty-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-lakitty-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-lakitty-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-lakitty-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -5427,10 +5427,10 @@ function initAgent(){
   const launcher=document.getElementById('agent-launcher'),panel=document.getElementById('agent-panel');if(!launcher||!panel)return;
   document.getElementById('agent-whatsapp').addEventListener('click',async()=>{try{const info=await agentWhatsApp.status();agentAddMessage('assistant',info.scheduler_ready?'WhatsApp está conectado y listo para programar.':'WhatsApp está conectado. Falta activar la cola privada y el cron para programar envíos.');}catch(e){agentAddMessage('system',e.message);}});
   document.getElementById('agent-gmail').addEventListener('click',async()=>{try{const info=await agentGmail.status();if(info.connected){if(confirm('¿Desconectar '+info.email+' de este navegador?'))await agentGmail.disconnect();}else await agentGmail.connect();}catch(e){agentAddMessage('system',e.message);}});
-  const show=visible=>{panel.classList.toggle('open',visible);panel.setAttribute('aria-hidden',String(!visible));launcher.setAttribute('aria-expanded',String(visible));if(visible){agentGmail.status().catch(()=>{});if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Hola, soy **Kitty**.\nTe ayudo a organizar el Hub y trabajar con tu correo. Contame qué necesitás o elegí una sugerencia.\n\nAntes de cambiar datos o enviar algo, siempre te voy a pedir confirmación.');document.getElementById('agent-input').focus();}else launcher.focus();};
+  const show=visible=>{panel.classList.toggle('open',visible);panel.setAttribute('aria-hidden',String(!visible));launcher.setAttribute('aria-expanded',String(visible));if(visible){agentGmail.status().catch(()=>{});if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Hola, soy **La Kitty**.\nTe ayudo a organizar el Hub y trabajar con tu correo. Contame qué necesitás o elegí una sugerencia.\n\nAntes de cambiar datos o enviar algo, siempre te voy a pedir confirmación.');document.getElementById('agent-input').focus();}else launcher.focus();};
   launcher.addEventListener('click',()=>show(!panel.classList.contains('open')));
   document.getElementById('agent-close').addEventListener('click',()=>show(false));
-  document.getElementById('agent-expand').addEventListener('click',e=>{const expanded=panel.classList.toggle('expanded');e.currentTarget.setAttribute('aria-pressed',String(expanded));e.currentTarget.setAttribute('aria-label',expanded?'Reducir Kitty':'Ampliar Kitty');});
+  document.getElementById('agent-expand').addEventListener('click',e=>{const expanded=panel.classList.toggle('expanded');e.currentTarget.setAttribute('aria-pressed',String(expanded));e.currentTarget.setAttribute('aria-label',expanded?'Reducir La Kitty':'Ampliar La Kitty');});
   panel.addEventListener('keydown',e=>{if(e.key==='Escape'){show(false);e.stopPropagation();}});
   document.querySelectorAll('[data-kitty-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=document.getElementById('agent-input');input.value=b.dataset.kittyPrompt;input.focus();}));
   document.getElementById('agent-send').addEventListener('click',agentSend);

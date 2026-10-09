@@ -13,7 +13,7 @@
     let toolError = null;
     const errorText = (e) => e?.message || "Error del agente";
     async function request(payload) {
-      env.progress?.("Kitty está pensando…");
+      env.progress?.("La Kitty está pensando…");
       const controller = new AbortController(),
         timer = setTimeout(() => controller.abort(), 35000);
       try {
