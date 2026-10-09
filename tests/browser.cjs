@@ -471,6 +471,15 @@ const handler = require("../api/agent");
     });
     assert.ok(await page.getByText('Vacante histórica',{exact:true}).isVisible());
     assert.equal(await page.getByText('Vacante cubierta',{exact:true}).count(),0);
+    // Opening a native select must not rebuild the DOM and dismiss its popup.
+    for(const selector of ['[data-job-status]','[data-job-owner]','[data-job-client]']){
+      const unchanged=await page.evaluate(selector=>{
+        const control=document.querySelector(selector);
+        control.click();
+        return control===document.querySelector(selector)&&control.isConnected;
+      },selector);
+      assert.equal(unchanged,true,'click must preserve '+selector);
+    }
     await page.locator('[data-job-area="Expansion People"]').click();
     assert.ok(await page.getByText('Vacante People',{exact:true}).isVisible());
     assert.equal(await page.getByText('Vacante histórica',{exact:true}).count(),0);
