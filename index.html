@@ -1002,7 +1002,7 @@ tr:hover td { background: #FAFBFC; }
 @media(prefers-reduced-motion:reduce){.kitty-status.working:before{animation:none}}
 
 
-.field-pending input{border-color:#d2a058;background:#fffcf5}details.nav-group>summary{cursor:pointer;padding:10px 0}.workspace-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.field-pending input{border-color:#d2a058;background:#fffcf5}details.nav-group>summary{cursor:pointer;padding:10px 0}.metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}.metric-tile .panel-body{padding:20px}.metric-tile{min-width:0}@media(max-width:1100px){.metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){.metrics-grid{grid-template-columns:1fr}}.workspace-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .workspace-tabs .selected{background:#163466;color:white;border-color:#163466}
 .workspace-hint,.workspace-sub{color:#64748b;font-size:13px}.workspace-sub{display:block;margin-top:5px}
 .workspace-item{padding:12px 0;border-bottom:1px solid #e8edf3;margin-bottom:8px}
@@ -1056,18 +1056,17 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/icons.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/workspace.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/text-encoding.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-forecast-areas-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-forecast-areas-1"></script>
+    <script src="/public/agent/workspace.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-color-nav-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-color-nav-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1087,20 +1086,21 @@ const navGroups = [
     ],
   },
   {
+    label: "Métricas",
+    items: [
+      { id: "metricas", icon: "📊", title: "Resumen" },
+      { id: "forecast", icon: "📅", title: "Previsión" },
+      { id: "placements", icon: "💶", title: "Facturación" },
+      { id: "goals", icon: "🏆", title: "Objetivos" },
+    ],
+  },
+  {
     label: "Planificación",
     items: [
       { id: "calendar", icon: "🗓️", title: "Calendario" },
       { id: "routine", icon: "⏱️", title: "Rutina" },
       { id: "commercial", icon: "📈", title: "Comercial" },
       { id: "notas", icon: "📝", title: "Notas" },
-    ],
-  },
-  {
-    label: "Métricas",
-    items: [
-      { id: "forecast", icon: "📅", title: "Previsión" },
-      { id: "placements", icon: "💶", title: "Facturación" },
-      { id: "goals", icon: "🏆", title: "Objetivos" },
     ],
   },
   {
@@ -1115,7 +1115,6 @@ const navGroups = [
     label: "Equipo",
     items: [
       { id: "fichaje", icon: "🕐", title: "Fichaje" },
-      { id: "metricas", icon: "📊", title: "Métricas" },
     ],
   },
 ];
@@ -1664,17 +1663,17 @@ function renderNav() {
   nav.innerHTML = navGroups
     .map(
       (group) => `
-      ${['Planificación','Métricas','Herramientas','Equipo'].includes(group.label)?`<details class="nav-group" ${group.items.some(i=>i.id===currentView)?'open':''}><summary class="nav-label">${group.label}</summary>`:`<div class="nav-group"><p class="nav-label">${group.label}</p>`}
+      <div class="nav-group"><p class="nav-label">${group.label}</p>
         ${group.items
           .map(
             (item) => `
             <button type="button" class="${item.id === currentView ? "active" : ""}" data-view="${item.id}">
-              <span class="icon">${EPIcons.svg(item.id)}</span><span>${item.title}</span>
+              <span class="icon">${item.icon}</span><span>${item.title}</span>
             </button>
           `,
           )
           .join("")}
-      ${['Planificación','Métricas','Herramientas','Equipo'].includes(group.label)?'</details>':'</div>'}
+      </div>
     `,
     )
     .join("");
@@ -5190,8 +5189,8 @@ function deleteFichaje(id) {
 // MÉTRICAS DE PROCESO
 // ============================================================
 function renderMetricas() {
-  eyebrow.textContent = "Metricas";
-  title.textContent = "Metricas de proceso";
+  eyebrow.textContent = "Métricas";
+  title.textContent = "Resumen de métricas";
   quickAdd.style.display = "none";
 
   var now = new Date();
@@ -5231,19 +5230,19 @@ function renderMetricas() {
   }).reduce(function(s,f){return s+(parseFloat(f.amount)||0);},0);
 
   var METRICS = [
-    {label:"Jobs abiertos", value:openJobs, sub:"de "+totalJobs+" totales", color:"#2563EB"},
-    {label:"En pipeline", value:cands_active, sub:"candidatos activos", color:"#7C3AED"},
+    {label:"Vacantes activas", value:openJobs, sub:"de "+totalJobs+" totales", color:"#2563EB"},
+    {label:"En pipeline", value:cands_active, sub:"participaciones en procesos", color:"#7C3AED"},
     {label:"Entrevistas activas", value:entrevistas, sub:"en proceso", color:"#0891B2"},
     {label:"Ofertas activas", value:ofertas, sub:"pendientes", color:"#D97706"},
     {label:"Placements este mes", value:placements_month, sub:money(revenue_month), color:"#059669"},
     {label:"Placements esta semana", value:placements_week, sub:"ultimos 7 dias", color:"#16A34A"},
-    {label:"Forecast mes", value:money(forecast_month), sub:"previsto facturar", color:"#2563EB", isMoney:true},
+    {label:"Previsión del mes", value:money(forecast_month), sub:"previsto facturar", color:"#2563EB", isMoney:true},
     {label:"Candidatos totales", value:cands_total, sub:"en la app", color:"#64748B"},
   ];
 
   var cards = METRICS.map(function(m){
-    return "<div class='panel' style='border-top:4px solid "+m.color+"'><div class='panel-body'>" +
-      "<div style='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94A3B8;margin-bottom:6px'>"+m.label+"</div>" +
+    return "<div class='panel metric-tile' style='border-top:4px solid "+m.color+";background:linear-gradient(135deg,"+m.color+"12,#fff)'><div class='panel-body'>" +
+      "<div style='font-size:13px;font-weight:700;color:"+m.color+";margin-bottom:10px'>"+m.label+"</div>" +
       "<div style='font-size:28px;font-weight:800;color:#0A1F5C;letter-spacing:-.02em'>"+(m.isMoney?m.value:m.value)+"</div>" +
       "<div style='font-size:12px;color:#64748B;margin-top:3px'>"+m.sub+"</div>" +
     "</div></div>";
@@ -5260,11 +5259,11 @@ function renderMetricas() {
   }).join("");
 
   app.innerHTML =
-    "<div style='display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px'>" + cards + "</div>" +
+    "<p class='workspace-hint'>Actividad de selección y resultados del equipo.</p><div class='metrics-grid'>" + cards + "</div>" +
     "<div class='grid two'>" +
-      "<div class='panel'><div class='panel-header'><span class='panel-title'>Jobs por estado</span></div>" +
+      "<div class='panel'><div class='panel-header'><span class='panel-title'>Vacantes por estado</span></div>" +
         "<div class='panel-body'>"+statusBreakdown+"</div></div>" +
-      "<div class='panel'><div class='panel-header'><span class='panel-title'>Pipeline por etapa</span></div>" +
+      "<div class='panel'><div class='panel-header'><span class='panel-title'>Candidatos por etapa</span></div>" +
         "<div class='panel-body'>" +
         ["Busqueda","Contactado","Entrevista","Entrevista C/C","Oferta"].map(function(stage){
           var cnt = allPipeline.filter(function(p){return p.stage===stage;}).length;

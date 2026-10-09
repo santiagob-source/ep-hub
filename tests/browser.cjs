@@ -505,7 +505,7 @@ const handler = require("../api/agent");
     });
     assert.equal(await page.locator('.workspace-tabs button').first().textContent(),'Expansion People');
     assert.ok(await page.locator('[data-job-area="Expansion People"]').evaluate(el=>el.classList.contains('selected')));
-    assert.ok(await page.locator('[data-view="clients"] svg').count()>0);
+    assert.equal(await page.locator('[data-view="clients"] .icon').textContent(),'🏢');
     await page.evaluate(()=>{
       state.forecast=[{id:'legacy-fc',title:'Previsión histórica',month:'Enero',amount:1000,consultor:'Santi'}];
       forecastContext={};setView('forecast');
@@ -549,6 +549,14 @@ const handler = require("../api/agent");
     assert.equal(await page.evaluate(()=>state.placements.filter(p=>p.forecastId?.startsWith('billing-')).length),2);
     await page.evaluate(()=>fc_unbill('billing-2026'));
     assert.equal(await page.evaluate(()=>state.placements.filter(p=>p.forecastId==='billing-2027').length),1);
+    await page.evaluate(()=>setView('metricas'));
+    const navLabels=await page.locator('#nav .nav-label').allTextContents();
+    assert.ok(navLabels.indexOf('Métricas')<navLabels.indexOf('Planificación'));
+    assert.equal((await page.locator('#nav [data-view="metricas"]').textContent()).trim(),'📊Resumen');
+    assert.ok(await page.locator('.metrics-grid').isVisible());
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.locator('.metrics-grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),1);
+    await page.screenshot({path:'/tmp/metrics-color.png',fullPage:true});
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",
