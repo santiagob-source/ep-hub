@@ -10,6 +10,7 @@
     const controls = () => {
       env.setBusy(busy || !!pending);
     };
+    let toolError = null;
     const errorText = (e) => e?.message || "Error del agente";
     async function request(payload) {
       env.progress?.("Kitty está pensando…");
@@ -82,7 +83,7 @@
         env.showResult(plan, output);
         return { call_id: plan.call_id, output };
       } catch (e) {
-        env.message("system", errorText(e));
+        toolError = errorText(e);
         return {
           call_id: plan.call_id,
           output: { ok: false, error: errorText(e) },
@@ -91,7 +92,11 @@
     }
     async function handle(data, round = 0, afterCancel = false) {
       if (data.text) env.message("assistant", data.text);
-      if (!data.calls.length) return;
+      if (!data.calls.length) {
+        if (!data.text && toolError) env.message("system", toolError);
+        toolError = null;
+        return;
+      }
       if (round >= 8) {
         responseId = null;
         env.message(
@@ -124,7 +129,7 @@
             call_id: call.call_id,
             output: { ok: false, error: errorText(e) },
           });
-          env.message("system", errorText(e));
+          toolError = errorText(e);
         }
       }
       // Preserve tool order. Reads after a write wait for the same reviewed batch.
@@ -169,6 +174,7 @@
       }
       if (!message.trim()) return;
       busy = true;
+      toolError = null;
       controls();
       env.message("user", message);
       try {
@@ -214,7 +220,7 @@
                 call_id: plan.call_id,
                 output: { ok: false, error: errorText(e) },
               });
-              env.message("system", errorText(e));
+              toolError = errorText(e);
             }
           }
           if (plans.length) {
