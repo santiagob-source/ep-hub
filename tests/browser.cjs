@@ -463,6 +463,34 @@ const handler = require("../api/agent");
     const flag = page.locator('[data-card="unicode-check"] img[alt="AR"]');
     assert.ok(await flag.isVisible());
     await page.waitForFunction(() => document.querySelector('[data-card="unicode-check"] img[alt="AR"]')?.naturalWidth > 0);
+    await page.evaluate(() => {
+      state.jobs.push({id:'business-fixture',title:'Vacante histórica',client:'Clínica Test',owner:'Santi',status:'En proceso',pipeline:[]});
+      state.jobs.push({id:'billed-fixture',title:'Vacante cubierta',client:'Clínica Test',owner:'Santi',jobStatus:'Facturado',pipeline:[]});
+      hubActions.save('jobs',null,{title:'Vacante People',client:'Clínica Test',owner:'Alba'});
+      window._jobAreaFilter='Todos';window._jobStatusFilter='Activos';setView('jobs');
+    });
+    assert.ok(await page.getByText('Vacante histórica',{exact:true}).isVisible());
+    assert.equal(await page.getByText('Vacante cubierta',{exact:true}).count(),0);
+    await page.locator('[data-job-area="Expansion People"]').click();
+    assert.ok(await page.getByText('Vacante People',{exact:true}).isVisible());
+    assert.equal(await page.getByText('Vacante histórica',{exact:true}).count(),0);
+    await page.locator('[data-job-area="Expansion Business"]').click();
+    await page.locator('[data-job-status]').selectOption('Archivo');
+    assert.ok(await page.getByText('Vacante cubierta',{exact:true}).isVisible());
+    assert.ok(await page.locator('table').getByText('Cubierta',{exact:true}).isVisible());
+    await page.evaluate(()=>{window._jobStatusFilter='Activos';window._jobAreaFilter='Todos';renderJobs();});
+    await page.setViewportSize({width:1440,height:1000});
+    await page.screenshot({path:'/tmp/vacantes-review.png',fullPage:true});
+    await page.evaluate(()=>{activeFilters.clients='Datos pendientes';setView('clients');});
+    assert.ok(await page.getByText('Falta Persona de contacto, Teléfono, Email',{exact:true}).first().isVisible());
+    await page.locator('[data-edit^="clients:"]').first().click();
+    assert.ok(await page.locator('.modal .field-pending input').count()>0);
+    await page.locator('.modal [data-close-modal]').first().click();
+    await page.screenshot({path:'/tmp/clientes-review.png',fullPage:true});
+    await page.evaluate(()=>setView('dashboard'));
+    assert.ok(await page.getByText('Mi día',{exact:true}).last().isVisible());
+    await page.setViewportSize({width:390,height:844});
+    await page.screenshot({path:'/tmp/midia-review.png',fullPage:true});
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",

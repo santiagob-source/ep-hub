@@ -51,6 +51,8 @@
       required: "title",
       defaults: {
         title: "",
+        businessArea: "Expansion People",
+        processStatus: "",
         client: "",
         owner: "Santi",
         status: "En proceso",

@@ -283,7 +283,15 @@
         if (type.type === "number") updated[key] = Number(updated[key]) || 0;
       if (entity === "jobs") {
         updated.pipeline = existing?.pipeline || [];
-        updated.jobStatus = Object.hasOwn(data, "status")
+        updated.businessArea = data.businessArea || existing?.businessArea || (existing ? "Expansion Business" : "Expansion People");
+        if (!["Expansion Business", "Expansion People"].includes(updated.businessArea)) throw Error("Área no disponible");
+        if (data.processStatus) updated.status = data.processStatus;
+        if (Object.hasOwn(data, "status") || data.processStatus) {
+          const value = updated.status;
+          updated.processStatus = value === "Facturado" ? "Cubierto" : value === "En proceso" ? "Abierto" : value;
+          if (!["Pendiente", "Abierto", "Standby", "Cubierto", "Cancelado"].includes(updated.processStatus)) throw Error("Estado de vacante no disponible");
+        }
+        updated.jobStatus = existing?.jobStatus === "Facturado" ? "Facturado" : Object.hasOwn(data, "status") || data.processStatus
           ? updated.status
           : existing?.jobStatus || updated.status;
         updated.fee =

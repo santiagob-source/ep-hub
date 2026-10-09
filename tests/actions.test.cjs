@@ -601,3 +601,14 @@ test('a failed result card cannot report an already created Gmail draft as faile
   await runtime.approve(runtime.pending.id);
   assert.deepEqual(payloads[1].tool_outputs[0].output, { ok: true, draft_id: 'created', sent: false });
 });
+
+test('new vacancies default to People while editing legacy vacancies preserves Business and billing',()=>{
+ const s=setup();
+ const created=s.hub.save('jobs',null,{title:'Nueva'});
+ assert.equal(created.businessArea,'Expansion People');
+ s.state.jobs.push({id:'old',title:'Anterior',status:'En proceso',jobStatus:'Facturado',pipeline:[],feePercent:10,salaryAgreed:30000});
+ const edited=s.hub.save('jobs','old',{status:'Cubierto',notes:'Actualizada'});
+ assert.equal(edited.businessArea,'Expansion Business');assert.equal(edited.jobStatus,'Facturado');assert.equal(edited.processStatus,'Cubierto');
+ const moved=s.hub.save('jobs','old',{businessArea:'Expansion People'});
+ assert.equal(moved.businessArea,'Expansion People');assert.equal(moved.jobStatus,'Facturado');
+});

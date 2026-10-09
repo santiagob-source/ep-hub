@@ -201,6 +201,7 @@ h1 {
 }
 
 .topbar-actions {
+  flex-wrap: wrap;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -1000,6 +1001,18 @@ tr:hover td { background: #FAFBFC; }
 @media(max-width:700px){.agent-launcher{right:14px;bottom:14px}.agent-panel,.agent-panel.expanded{inset:0;width:100%;max-width:none;margin:0;border-radius:0;height:100dvh}.agent-head{padding:16px}.kitty-toolbar{padding:10px 16px}.agent-messages{padding:16px}.agent-msg{max-width:100%;font-size:14px}.kitty-shortcuts{padding:10px 16px 0}.agent-composer{padding:12px 16px max(14px,env(safe-area-inset-bottom))}.agent-hint{font-size:10px}.kitty-field{grid-template-columns:85px minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.kitty-status.working:before{animation:none}}
 
+
+.field-pending input{border-color:#d2a058;background:#fffcf5}details.nav-group>summary{cursor:pointer;padding:10px 0}.workspace-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.workspace-tabs .selected{background:#163466;color:white;border-color:#163466}
+.workspace-hint,.workspace-sub{color:#64748b;font-size:13px}.workspace-sub{display:block;margin-top:5px}
+.workspace-item{padding:12px 0;border-bottom:1px solid #e8edf3;margin-bottom:8px}
+.workspace-link{border:0;background:none;padding:0;font:inherit;font-weight:650;color:#163466;cursor:pointer;text-align:left}
+.client-completeness p{font-size:13px;line-height:1.5;margin:6px 0;color:#475569}
+.directory-card{padding:18px}.directory-card h2{font-size:18px}.directory-grid{gap:16px}
+.status-badge.neutral{background:#f1f5f9;color:#475569}.status-badge{font-size:12px;white-space:nowrap;background:#f1f5f9}
+.table-wrap td{padding:14px 12px;font-size:14px}.job-panel:hover{background:#f8fafc}
+.toolbar{flex-wrap:wrap}.toolbar select.search{width:auto;min-width:130px;max-width:240px}
+@media(max-width:700px){.grid.two{grid-template-columns:1fr}.workspace-tabs button{flex:1}.table-wrap{overflow-x:auto}}
 </style>
 </head>
   <body>
@@ -1020,7 +1033,7 @@ tr:hover td { background: #FAFBFC; }
       <header class="topbar">
         <div>
           <p id="section-eyebrow" class="eyebrow">Principal</p>
-          <h1 id="section-title">Dashboard</h1>
+          <h1 id="section-title">Mi día</h1>
         </div>
         <div class="topbar-actions">
           
@@ -1043,16 +1056,17 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/text-encoding.js?v=20261009-draft-edit-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-draft-edit-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-draft-edit-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-draft-edit-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-draft-edit-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-draft-edit-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-draft-edit-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-draft-edit-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-draft-edit-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-draft-edit-1"></script>
+    <script src="/public/agent/workspace.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-workspace-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-workspace-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1060,15 +1074,15 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 const navGroups = [
   {
     label: "Principal",
-    items: [{ id: "dashboard", icon: "🏠", title: "Dashboard" }],
+    items: [{ id: "dashboard", icon: "🏠", title: "Mi día" }],
   },
   {
     label: "Gestión",
     items: [
       { id: "clients", icon: "🏢", title: "Clientes" },
       { id: "candidates", icon: "👥", title: "Candidatos" },
-      { id: "jobs", icon: "📋", title: "Jobs" },
-      { id: "tasks", icon: "✅", title: "To-Do" },
+      { id: "jobs", icon: "📋", title: "Vacantes" },
+      { id: "tasks", icon: "✅", title: "Tareas" },
     ],
   },
   {
@@ -1083,7 +1097,7 @@ const navGroups = [
   {
     label: "Métricas",
     items: [
-      { id: "forecast", icon: "📅", title: "Forecast" },
+      { id: "forecast", icon: "📅", title: "Previsión" },
       { id: "placements", icon: "💶", title: "Facturación" },
       { id: "goals", icon: "🏆", title: "Objetivos" },
     ],
@@ -1649,8 +1663,7 @@ function renderNav() {
   nav.innerHTML = navGroups
     .map(
       (group) => `
-      <div class="nav-group">
-        <p class="nav-label">${group.label}</p>
+      ${['Planificación','Métricas','Herramientas','Equipo'].includes(group.label)?`<details class="nav-group" ${group.items.some(i=>i.id===currentView)?'open':''}><summary class="nav-label">${group.label}</summary>`:`<div class="nav-group"><p class="nav-label">${group.label}</p>`}
         ${group.items
           .map(
             (item) => `
@@ -1660,7 +1673,7 @@ function renderNav() {
           `,
           )
           .join("")}
-      </div>
+      ${['Planificación','Métricas','Herramientas','Equipo'].includes(group.label)?'</details>':'</div>'}
     `,
     )
     .join("");
@@ -1672,7 +1685,7 @@ function setView(view) {
   const item = getAllNavItems().find((entry) => entry.id === view);
   title.textContent = item.title;
   eyebrow.textContent = item.group;
-  quickAdd.style.display = ["dashboard", "pomodoro", "reports", "assistant"].includes(view) ? "none" : "inline-flex";
+  quickAdd.style.display = ["dashboard", "pomodoro", "reports", "assistant", "jobs", "clients", "candidates"].includes(view) ? "none" : "inline-flex";
   renderNav();
   render();
   recordNavigationState();
@@ -1757,103 +1770,22 @@ function calcTotals() {
   return { total, byConsultant };
 }
 
-function renderDashboard() {
-  eyebrow.textContent = "Principal";
-  title.textContent = "Dashboard";
-  quickAdd.style.display = "none";
-
-  if (!state.dashWidgets) {
-    state.dashWidgets = ["stats","urgentes","candidatos","jobs","placements","tasks"];
-  }
-
-  const { total, byConsultant } = calcTotals();
-  const activeJobs = state.jobs.filter(j => !["Cancelado","Facturado"].includes(j.jobStatus||"Abierto")).length;
-  const urgent = state.tasks.filter(t => !t.done && t.priority === "Alta");
-  const priorityCandidates = state.candidates.filter(c => ["Entrevista","Entrevista C/C","Oferta"].includes(c.status));
-  const recentPlacements = [...state.placements].reverse().slice(0, 3);
-
-  const WIDGETS = {
-    stats: () =>
-      '<div class="grid three" style="margin-bottom:14px">' +
-        '<article class="panel metric"><div class="panel-body"><span>Facturado total</span><strong>' + money(total) + '</strong></div></article>' +
-        '<article class="panel metric"><div class="panel-body"><span>Jobs abiertos</span><strong>' + activeJobs + '</strong></div></article>' +
-        '<article class="panel metric"><div class="panel-body"><span>Candidatos activos</span><strong>' + state.candidates.filter(c => c.status !== "Descartado").length + '</strong></div></article>' +
-      '</div>',
-
-    urgentes: () =>
-      '<article class="panel" style="margin-bottom:12px"><div class="panel-header"><span class="panel-title">&#128205; Tareas urgentes</span></div>' +
-      '<div class="panel-body" style="padding-top:8px">' +
-        (urgent.length ? urgent.slice(0,4).map(t =>
-          '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F1F5F9"><span style="color:#EF4444;font-weight:900">!</span><span style="font-size:13px;color:#1E293B">' + t.title + '</span>' +
-          (t.linkedTo ? '<span style="font-size:11px;color:#2563EB;margin-left:auto">'+t.linkedTo+'</span>' : '') + '</div>'
-        ).join('') : '<p style="color:var(--muted);font-size:13px">Sin tareas urgentes &#127881;</p>') +
-      '</div></article>',
-
-    candidatos: () =>
-      '<article class="panel" style="margin-bottom:12px"><div class="panel-header"><span class="panel-title">&#128293; Candidatos prioritarios</span></div>' +
-      '<div class="panel-body" style="padding-top:8px">' +
-        (priorityCandidates.length ? priorityCandidates.slice(0,4).map(c =>
-          '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F1F5F9">' +
-          '<div style="width:32px;height:32px;border-radius:50%;background:var(--sky);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">&#128104;&#8205;&#9877;&#65039;</div>' +
-          '<div><div style="font-size:13px;font-weight:700">' + c.name + '</div><div style="font-size:11px;color:#64748B">' + (c.specialty||'') + '</div></div>' +
-          '<span class="pill" style="margin-left:auto;font-size:10px">' + c.status + '</span></div>'
-        ).join('') : '<p style="color:var(--muted);font-size:13px">Sin candidatos prioritarios</p>') +
-      '</div></article>',
-
-    jobs: () =>
-      '<article class="panel" style="margin-bottom:12px"><div class="panel-header"><span class="panel-title">&#128203; Jobs activos</span></div>' +
-      '<div class="panel-body" style="padding-top:8px">' +
-        state.jobs.filter(j=>(j.jobStatus||"Abierto")==="Abierto").slice(0,5).map(j =>
-          '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F1F5F9">' +
-          '<div><div style="font-size:12px;font-weight:700">' + j.title + '</div><div style="font-size:11px;color:#64748B">' + j.client + '</div></div>' +
-          '<span style="font-size:11px;font-weight:700;color:#0A1F5C">' + (j.pipeline||[]).length + ' candis</span></div>'
-        ).join('') || '<p style="color:var(--muted);font-size:12px">Sin jobs abiertos</p>' +
-      '</div></article>',
-
-    placements: () =>
-      '<article class="panel" style="margin-bottom:12px"><div class="panel-header"><span class="panel-title">&#127919; Placements recientes</span></div>' +
-      '<div class="panel-body" style="padding-top:8px">' +
-        (recentPlacements.length ? recentPlacements.map(p =>
-          '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F1F5F9">' +
-          '<div><div style="font-size:12px;font-weight:700">' + p.job + '</div><div style="font-size:11px;color:#64748B">' + p.client + ' \u00b7 ' + p.month + '</div></div>' +
-          '<span style="font-size:12px;font-weight:700;color:#0A1F5C">' + money(p.amount) + '</span></div>'
-        ).join('') : '<p style="color:var(--muted);font-size:12px">Sin placements registrados</p>') +
-      '</div></article>',
-
-    tasks: () =>
-      '<article class="panel" style="margin-bottom:12px"><div class="panel-header"><span class="panel-title">&#128203; Proximas tareas</span></div>' +
-      '<div class="panel-body" style="padding-top:8px">' +
-        state.tasks.filter(t=>!t.done).slice(0,5).map(t =>
-          '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #F1F5F9">' +
-          '<span style="width:8px;height:8px;border-radius:50%;background:' + (t.priority==="Alta"?"#EF4444":t.priority==="Media"?"#F59E0B":"#22C55E") + ';flex-shrink:0;display:inline-block"></span>' +
-          '<span style="font-size:12px;flex:1">' + t.title + '</span>' +
-          (t.linkedTo?'<span style="font-size:10px;color:#2563EB">'+t.linkedTo+'</span>':'') + '</div>'
-        ).join('') || '<p style="color:var(--muted);font-size:12px">Sin tareas pendientes</p>' +
-      '</div></article>',
-  };
-
-  const ALL_WIDGETS = Object.keys(WIDGETS);
-  const active = state.dashWidgets.filter(w => WIDGETS[w]);
-
-  // Widget picker for hidden widgets
-  const hidden = ALL_WIDGETS.filter(w => !active.includes(w));
-  const hiddenBtns = hidden.length ?
-    '<div style="margin-top:14px;padding:10px;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:10px;text-align:center">' +
-    '<span style="font-size:12px;color:#94A3B8;margin-right:8px">Widgets ocultos:</span>' +
-    hidden.map(w => '<button onclick="dash_show(\''+w+'\')" style="margin:3px;padding:4px 10px;border:1.5px solid #CBD5E1;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;font-family:inherit">+ '+w+'</button>').join('') +
-    '</div>' : '';
-
-  const widgetHtml = active.map(w =>
-    '<div class="dash-widget" data-widget="'+w+'" draggable="true" ondragstart="dash_drag(event,\''+w+'\')" style="position:relative">' +
-      '<button onclick="dash_hide(\''+w+'\')" style="position:absolute;top:8px;right:8px;z-index:2;border:none;background:none;color:#CBD5E1;cursor:pointer;font-size:16px;line-height:1" title="Ocultar">&times;</button>' +
-      WIDGETS[w]() +
-    '</div>'
-  ).join('');
-
-  app.innerHTML =
-    '<div id="dash-grid" ondragover="event.preventDefault()" ondrop="dash_drop(event)" style="min-height:200px">' +
-      widgetHtml +
-    '</div>' + hiddenBtns;
+function renderDashboard(){
+  title.textContent='Mi día';eyebrow.textContent='Principal';quickAdd.style.display='none';
+  const now=Date.now();
+  const tasks=state.tasks.filter(t=>!t.done).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'));
+  const due=tasks.filter(t=>t.priority==='Alta'||(t.due&&new Date(t.due).getTime()<=now+86400000));
+  const contacts=state.candidates.filter(c=>c.contactarFecha&&new Date(c.contactarFecha).getTime()<=now+86400000);
+  const incomplete=state.clients.filter(c=>{const m=EPWorkspace.missing(c);return m.contact.length||m.billing.length;});
+  const jobs=state.jobs.filter(EPWorkspace.active);
+  const billing=(state.forecast||[]).filter(f=>!f.billed);
+  const link=(type,item,label)=>'<button class="workspace-link" data-open-detail="'+type+':'+agentSafe(item.id)+'">'+agentSafe(label)+'</button>';
+  const panel=(name,body)=>'<section class="panel"><div class="panel-header"><h2 class="panel-title">'+name+'</h2></div><div class="panel-body">'+body+'</div></section>';
+  app.innerHTML='<p class="workspace-hint">Tu trabajo y los datos pendientes, en un solo lugar.</p><div class="grid two">'+
+    panel('Tareas y contactos próximos',due.slice(0,6).map(t=>'<div class="workspace-item">'+agentSafe(t.title)+'<small class="workspace-sub">'+(t.due?new Date(t.due).toLocaleString('es-ES',{timeZone:'Europe/Madrid'}):'Prioridad alta')+'</small></div>').join('')+contacts.slice(0,4).map(c=>'<div class="workspace-item">'+link('candidate',c,'Contactar: '+c.name)+'</div>').join('')+(!due.length&&!contacts.length?'<p>Sin pendientes próximos.</p>':'')+'<button class="ghost-button" data-view="tasks">Ver todas las tareas</button>')+
+    panel('Vacantes para revisar · '+jobs.length,jobs.slice(0,6).map(j=>'<div class="workspace-item">'+link('job',j,j.title)+'<small class="workspace-sub">'+agentSafe(j.client||'Sin cliente')+' · '+EPWorkspace.labels[EPWorkspace.status(j)]+' · '+EPWorkspace.area(j)+'</small></div>').join('')+'<button class="ghost-button" data-view="jobs">Ver vacantes</button>')+
+    panel('Clientes con datos pendientes · '+incomplete.length,incomplete.slice(0,4).map(c=>'<div class="workspace-item">'+link('client',c,c.name)+clientMissingHtml(c)+'</div>').join('')+(!incomplete.length?'<p>Las fichas están completas.</p>':'')+'<button class="ghost-button" onclick="activeFilters.clients=\'Datos pendientes\';setView(\'clients\')">Completar clientes</button>')+
+    panel('Previsión pendiente de facturar · '+billing.length,billing.slice(0,5).map(f=>'<div class="workspace-item">'+agentSafe(f.title||f.clientName||'Sin título')+'<small class="workspace-sub">'+agentSafe(f.month||'Sin mes')+' · '+money(f.amount||0)+'</small></div>').join('')+'<button class="ghost-button" data-view="forecast">Ver previsión</button>')+'</div>';
 }
 
 function dash_hide(w) {
@@ -1940,11 +1872,11 @@ const schemas = {
       ["email", "Email"],
       ["jobs", "Jobs"],
       ["notes", "Notas", "textarea"],
-      ["razonSocial", "Razon Social (facturacion)"],
+      ["razonSocial", "Razón social (facturación)"],
       ["cif", "CIF"],
-      ["dirFac", "Direccion de Facturacion"],
-      ["emailFac", "Email facturacion (para Mati)"],
-      ["contactFac", "Contacto facturacion"],
+      ["dirFac", "Dirección de facturación"],
+      ["emailFac", "Email de facturación"],
+      ["contactFac", "Contacto de facturación"],
     ],
   },
   routine: {
@@ -2007,7 +1939,7 @@ function getDirectoryConfig(key) {
       title: "cliente",
       placeholder: "Buscar cliente...",
       addLabel: "+ Nuevo cliente",
-      filters: ["Todos", "Activos", "Pausados", "Cerrados"],
+      filters: ["Todos", "Activos", "En proceso", "Datos pendientes", "Pausados", "Cerrados"],
       status: (item) => item.status || "Activo",
       meta: (item) => [
         ["Estado", item.status || "Activo"],
@@ -2035,11 +1967,11 @@ function getDirectoryConfig(key) {
 }
 
 function countClientJobs(client) {
-  if (!client.jobs) return 0;
-  return client.jobs.split(",").map((job) => job.trim()).filter(Boolean).length;
+  return findJobsForClient(client.name).filter(EPWorkspace.active).length;
 }
 
 function renderDirectoryView(key) {
+  if(key==='clients'){renderClientsWorkspace();return;}
   const config = getDirectoryConfig(key);
   const filter = activeFilters[key] || "Todos";
   const specialtyFilter = activeFilters.specialty || "Todas";
@@ -2063,10 +1995,21 @@ function renderDirectoryView(key) {
   `;
 }
 
+function renderClientsWorkspace(){
+  const filter=activeFilters.clients||'Todos',config=getDirectoryConfig('clients');
+  const clients=state.clients.filter(c=>matchesDirectoryFilter('clients',c,filter));
+  const list=items=>items.length?'Falta '+items.map(x=>x[1]).join(', '):'Completo';
+  app.innerHTML='<div class="toolbar"><input class="search" type="search" placeholder="Buscar cliente…" data-search="clients"><div class="segmented">'+config.filters.map(f=>'<button class="'+(filter===f?'active':'')+'" data-filter="clients:'+f+'">'+f+'</button>').join('')+'</div><button class="primary-button" data-add="clients">+ Nuevo cliente</button></div><p class="workspace-hint">Los datos de contacto y facturación se revisan por separado. Los fiscales pueden completarse cuando el cliente avance.</p><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Estado</th><th>Vacantes activas</th><th>Contacto</th><th>Facturación</th><th></th></tr></thead><tbody>'+clients.map(c=>{
+    const m=EPWorkspace.missing(c);
+    return '<tr data-card="'+agentSafe(c.id)+'" data-open-detail="client:'+agentSafe(c.id)+'"><td><strong>'+agentSafe(c.name)+'</strong></td><td><span class="status-badge '+statusClass(c.status)+'">'+agentSafe(c.status||'Activo')+'</span></td><td>'+countClientJobs(c)+'</td><td>'+list(m.contact)+'</td><td>'+list(m.billing)+'</td><td><button class="ghost-button" data-edit="clients:'+agentSafe(c.id)+'">Completar / editar</button></td></tr>';
+  }).join('')+(clients.length?'':'<tr><td colspan="6">No hay clientes con este filtro.</td></tr>')+'</tbody></table></div>';
+}
 function matchesDirectoryFilter(key, item, filter) {
   const status = (item.status || "").toLowerCase();
   if (filter === "Todos") return true;
   if (key === "clients") {
+    if (filter === "Datos pendientes") { const m=EPWorkspace.missing(item); return m.contact.length || m.billing.length; }
+    if (filter === "En proceso") return status === "en proceso";
     if (filter === "Activos") return status === "activo" || status === "";
     if (filter === "Pausados") return status === "pausado";
     if (filter === "Cerrados") return status === "cerrado";
@@ -2077,21 +2020,20 @@ function matchesDirectoryFilter(key, item, filter) {
   return true;
 }
 
-function jobStatusColor(s){
-  if(!s||s==="Abierto") return "#22C55E";
-  if(s==="Standby") return "#94A3B8";
-  if(s==="Cancelado") return "#EF4444";
-  if(s==="Facturado") return "#2563EB";
-  return "#94A3B8";
-}
+function jobStatusColor(s){return EPWorkspace.colors[EPWorkspace.status({jobStatus:s})];}
 function statusClass(status) {
   const value = (status || "").toLowerCase();
-  if (["pausado", "media", "contactado"].includes(value)) return "yellow";
-  if (["cerrado", "descartado", "alta"].includes(value)) return "red";
-  if (["activo", "prioritario", "entrevista", "oferta"].includes(value)) return "green";
+  if (["pausado", "media", "contactado", "volver a contactar"].includes(value)) return "yellow";
+  if (["cerrado", "cancelado"].includes(value)) return "neutral";
+  if (["descartado", "alta"].includes(value)) return "red";
+  if (["activo", "placement"].includes(value)) return "green";
   return "";
 }
 
+function clientMissingHtml(client){
+  const m=EPWorkspace.missing(client);
+  return '<div class="client-completeness"><p><strong>Contacto:</strong> '+(m.contact.length?'Falta '+m.contact.map(x=>x[1]).join(', '):'Completo')+'</p><p><strong>Facturación:</strong> '+(m.billing.length?'Falta '+m.billing.map(x=>x[1]).join(', '):'Completa')+'</p></div>';
+}
 function renderDirectoryCard(key, item, config) {
   const status = config.status(item);
   const detailType = key === "clients" ? "client" : "candidate";
@@ -2105,10 +2047,10 @@ function renderDirectoryCard(key, item, config) {
       <dl>
         ${config.meta(item).map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("")}
       </dl>
-      <p>${config.foot(item)}</p>
+      ${key === "clients" ? clientMissingHtml(item) : `<p>${config.foot(item)}</p>`}
       <div class="directory-actions">
         ${key === "candidates" && item.phone ? whatsappButton(item.phone, "WhatsApp") : ""}
-        <button class="ghost-button" type="button" data-edit="${key}:${item.id}">Editar</button>
+        <button class="ghost-button" type="button" data-edit="${key}:${item.id}">${key === "clients" ? "Completar / editar" : "Editar"}</button>
         <button class="icon-button" type="button" title="Eliminar" data-delete="${key}:${item.id}">×</button>
       </div>
     </article>
@@ -2588,8 +2530,8 @@ function renderClientDetail(id) {
       <section class="panel">
         <div class="panel-header"><h2 class="panel-title">Actividad</h2></div>
         <div class="panel-body detail-list">
-          <div><span>Jobs abiertos</span><strong>${jobs.length}</strong></div>
-          <div><span>Candidatos vinculados</span><strong>${jobs.reduce((sum, job) => sum + findCandidatesForJob(job.title).length, 0)}</strong></div>
+          <div><span>Jobs abiertos</span><strong>${jobs.filter(EPWorkspace.active).length}</strong></div>
+          <div><span>Candidatos vinculados</span><strong>${new Set(jobs.flatMap(job=>(job.pipeline||[]).map(p=>p.candidateId||p.id||p.name))).size}</strong></div>
           <div><span>Facturacion estimada</span><strong>${money(jobs.reduce((sum, job) => sum + Number(job.fee || 0), 0))}</strong></div>
         </div>
       </section>
@@ -2600,6 +2542,7 @@ function renderClientDetail(id) {
         ${jobs.map((job) => renderLinkedJobCard(job)).join("") || empty("Todavia no hay jobs conectados a este cliente")}
       </div>
     </section>
+    <section class="panel panel-body" style="margin-top:18px"><h2 class="panel-title">Datos pendientes</h2>${clientMissingHtml(client)}<button class="ghost-button" data-edit="clients:${client.id}">Completar datos</button></section>
     ${renderClientProposals(client)}
   `;
 }
@@ -2704,7 +2647,7 @@ function renderLinkedJobCard(job) {
     <article class="linked-card" data-open-detail="job:${job.id}">
       <div>
         <strong>${job.title}</strong>
-        <span>${job.client} · ${job.jobStatus||job.status||"Abierto"} · ${money(job.fee)}</span>
+        <span>${job.client} · ${EPWorkspace.labels[EPWorkspace.status(job)]} · ${money(job.fee)}</span>
       </div>
       <button class="icon-button" type="button" title="Abrir job" data-open-detail="job:${job.id}">→</button>
     </article>
@@ -2728,55 +2671,17 @@ function renderRow(key, row) {
 }
 
 function renderJobs() {
-  var sf = window._jobStatusFilter || "Todos";
-  var stages = ["Busqueda","Contactado","Entrevista","Entrevista C/C","Oferta"];
-  var statuses = ["Todos","Abierto","Standby","Cancelado","Facturado"];
-
-  var filterHtml = statuses.map(function(s){
-    var a = sf===s;
-    var style = a ? "border:1.5px solid #0A1F5C;background:#0A1F5C;color:#fff;" : "border:1.5px solid #CBD5E1;background:#fff;color:#64748B;";
-    return "<button type='button' style='height:30px;padding:0 11px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;" + style + "' data-job-filter='" + s + "'>" + s + "</button>";
-  }).join("");
-
-  var jobs = state.jobs.filter(function(j){
-    return sf==="Todos" || (j.jobStatus||"Abierto")===sf;
-  });
-
-  var cards = jobs.map(function(job){
-    var color = jobStatusColor(job.jobStatus||"Abierto");
-    var fee = parseFloat(job.feePercent||0);
-    var sal = parseFloat(job.salaryAgreed||0);
-    var inv = (fee&&sal) ? Math.round(fee/100*sal) : 0;
-    var invTxt = inv ? " \u00b7 " + inv.toLocaleString("es-ES") + " \u20ac" : "";
-    var pills = stages.map(function(st){
-      var cnt = (job.pipeline||[]).filter(function(p){return p.stage===st;}).length;
-      return cnt ? "<span style='font-size:10px;font-weight:700;padding:2px 7px;background:#F1F5F9;border-radius:20px;color:#64748B'>" + st + ": " + cnt + "</span>" : "";
-    }).join("");
-    return "<section class='panel job-panel' data-open-detail='job:" + job.id + "' style='border-left:5px solid " + color + ";cursor:pointer'>" +
-      "<div class='panel-header'>" +
-        "<div><div style='display:flex;align-items:center;gap:7px;margin-bottom:3px'>" +
-          "<span style='width:9px;height:9px;border-radius:50%;background:" + color + ";flex-shrink:0;display:inline-block'></span>" +
-          "<h2 class='panel-title' style='margin:0'>" + job.title + "</h2></div>" +
-          "<p style='margin:0;color:var(--muted);font-size:12px'>" + job.client + " \u00b7 " + job.owner + invTxt + "</p></div>" +
-        "<div class='row-actions' onclick='event.stopPropagation()'>" +
-          "<button class='icon-button' title='Editar' data-edit-job='" + job.id + "'>\u270e</button>" +
-          "<button class='icon-button' title='Eliminar' data-delete-job='" + job.id + "'>\u00d7</button>" +
-        "</div></div>" +
-      "<div class='panel-body' style='padding-top:5px'><div style='display:flex;gap:5px;flex-wrap:wrap'>" + pills + "</div></div>" +
-    "</section>";
-  }).join("") || "<p style='color:var(--muted);padding:18px'>Sin jobs.</p>";
-
-  app.innerHTML =
-    "<div class='toolbar'>" +
-      "<div style='display:flex;gap:7px;align-items:center;flex-wrap:wrap'>" +
-        "<input class='search' type='search' placeholder='Buscar job...' data-search='jobs' style='width:190px'/>" +
-        "<div style='display:flex;gap:5px;flex-wrap:wrap'>" + filterHtml + "</div>" +
-      "</div>" +
-      "<button class='primary-button' type='button' data-add-job>+ Nuevo job</button>" +
-    "</div>" +
-    "<div class='grid two'>" + cards + "</div>";
+  const area=window._jobAreaFilter||'Todos', sf=window._jobStatusFilter||'Activos';
+  const owner=window._jobOwnerFilter||'',client=window._jobClientFilter||'';
+  const jobs=state.jobs.filter(j=>(area==='Todos'||EPWorkspace.area(j)===area)&&(sf==='Todos'?true:sf==='Archivo'?!EPWorkspace.active(j):sf==='Activos'?EPWorkspace.active(j):EPWorkspace.status(j)===sf)&&( !owner||j.owner===owner)&&(!client||j.client===client));
+  const options=(values,value,label)=>'<option value="">'+label+'</option>'+values.filter(Boolean).map(v=>'<option value="'+agentSafe(v)+'" '+(v===value?'selected':'')+'>'+agentSafe(v)+'</option>').join('');
+  app.innerHTML='<div class="workspace-tabs">'+['Todos','Expansion People','Expansion Business'].map(a=>'<button class="ghost-button '+(area===a?'selected':'')+'" data-job-area="'+a+'">'+a+'</button>').join('')+'</div><div class="toolbar"><input class="search" type="search" placeholder="Buscar vacante o cliente…" data-search="jobs"><select class="search" data-job-status><option value="Activos" '+(sf==='Activos'?'selected':'')+'>Activas</option><option value="Archivo" '+(sf==='Archivo'?'selected':'')+'>Archivo</option><option value="Todos" '+(sf==='Todos'?'selected':'')+'>Todos los estados</option>'+EPWorkspace.states.map(s=>'<option value="'+s+'" '+(sf===s?'selected':'')+'>'+EPWorkspace.labels[s]+'</option>').join('')+'</select><select class="search" aria-label="Responsable" data-job-owner>'+options([...new Set(state.jobs.map(j=>j.owner))],owner,'Todos los responsables')+'</select><select class="search" aria-label="Cliente" data-job-client>'+options([...new Set(state.jobs.map(j=>j.client))],client,'Todos los clientes')+'</select><button class="primary-button" data-add-job>+ Nueva vacante</button></div><p class="workspace-hint">'+jobs.length+' vacantes · Los nuevos procesos se crean en Expansion People.</p><div class="table-wrap"><table><thead><tr><th>Vacante / área</th><th>Cliente</th><th>Responsable</th><th>Estado</th><th>Candidatos</th><th>Pendiente</th><th></th></tr></thead><tbody>'+jobs.map(j=>{
+    const status=EPWorkspace.status(j), pipeline=j.pipeline||[];
+    const todo=state.tasks.filter(t=>!t.done&&normalize(t.linkedTo)===normalize(j.title));
+    const next=!EPWorkspace.active(j)?'Archivada':todo[0]?.title||(!pipeline.length?'Añadir candidatos':pipeline.some(p=>p.stage==='Oferta')?'Revisar oferta':pipeline.some(p=>p.stage.startsWith('Entrevista'))?'Revisar entrevistas':'Revisar candidatos');
+    return '<tr class="job-panel" data-open-detail="job:'+agentSafe(j.id)+'"><td><strong>'+agentSafe(j.title)+'</strong><small class="workspace-sub">'+EPWorkspace.area(j)+'</small></td><td>'+agentSafe(j.client||'Sin cliente')+'</td><td>'+agentSafe(j.owner||'Sin responsable')+'</td><td><span class="status-badge" style="color:'+EPWorkspace.colors[status]+'">'+EPWorkspace.labels[status]+'</span><small class="workspace-sub">'+(j.jobStatus==='Facturado'?'Facturada':'')+'</small></td><td>'+pipeline.filter(p=>!['Rechazado','No presentado'].includes(p.label)).length+'</td><td>'+agentSafe(next)+'</td><td><button class="ghost-button" data-edit-job="'+agentSafe(j.id)+'">Editar</button></td></tr>';
+  }).join('')+(jobs.length?'':'<tr><td colspan="7">No hay vacantes con estos filtros.</td></tr>')+'</tbody></table></div>';
 }
-
 
 function renderJobDetail(id) {
   var job = state.jobs.find(function(j){return j.id===id;});
@@ -2784,9 +2689,9 @@ function renderJobDetail(id) {
 
   var stages = ["Busqueda","Contactado","Entrevista","Entrevista C/C","Oferta"];
   var months = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-  var JOB_STATUSES = ["Abierto","Standby","Cancelado","Facturado"];
+  var JOB_STATUSES = EPWorkspace.states;
   var LABELS = {"En proceso":["#DCFCE7","#166534"],"Placement":["#DBEAFE","#1E40AF"],"No presentado":["#F1F5F9","#64748B"],"Rechazado":["#FEE2E2","#991B1B"]};
-  var color = jobStatusColor(job.jobStatus||"Abierto");
+  var color = EPWorkspace.colors[EPWorkspace.status(job)];
   var client = state.clients.find(function(c){return normalize(c.name)===normalize(job.client);});
   var fee = parseFloat(job.feePercent||0);
   var sal = parseFloat(job.salaryAgreed||0);
@@ -2794,7 +2699,7 @@ function renderJobDetail(id) {
 
   // Status selector
   var statusOpts = JOB_STATUSES.map(function(s){
-    return "<option" + ((job.jobStatus||"Abierto")===s?" selected":"") + ">" + s + "</option>";
+    return "<option value='"+s+"'" + (EPWorkspace.status(job)===s?" selected":"") + ">" + EPWorkspace.labels[s] + "</option>";
   }).join("");
 
   // Month pickers
@@ -2845,7 +2750,7 @@ function renderJobDetail(id) {
           "<select style='font-family:inherit;font-size:13px;font-weight:700;padding:3px 9px;border:1.5px solid " + color + ";border-radius:20px;background:#fff;cursor:pointer' onchange='jd_status(\"" + id + "\",this.value)'>" + statusOpts + "</select>" +
           "<h2 style='margin:0;font-size:20px;font-weight:800;color:#1E293B'>" + job.title + "</h2>" +
         "</div>" +
-        "<p style='color:#64748B;font-size:13px;margin-bottom:8px'>" + job.client + " &middot; " + job.owner + "</p>" +
+        "<p style='color:#64748B;font-size:13px;margin-bottom:8px'>" + agentSafe(job.client||"Sin cliente") + " &middot; " + agentSafe(job.owner||"Sin responsable") + " &middot; " + EPWorkspace.area(job) + "</p>" +
         "<p>" + (job.notes||"Sin notas.") + "</p>" +
       "</div>" +
       "<div class='detail-actions'>" +
@@ -3383,6 +3288,13 @@ function editRecord(key, id) {
       }
     },
   });
+  if(key==='clients'){
+    const form=document.querySelector('.modal.show form');
+    const missing=EPWorkspace.missing(record), keys=[...missing.contact,...missing.billing].map(x=>x[0]);
+    for(const input of form.elements)if(keys.includes(input.name)){input.closest('.field').classList.add('field-pending');input.placeholder='Dato pendiente';}
+    const first=form.querySelector('.field-pending input');if(first)first.focus();
+    const note=document.createElement('p');note.className='workspace-hint full';note.textContent='Los campos destacados están pendientes. Completá los datos disponibles y guardá.';form.prepend(note);
+  }
 }
 
 // REPLACEMENT FOR editBilling - client filters jobs + email mati after save
@@ -3598,9 +3510,9 @@ function editJob(id, defaults) {
   var ownerOpts = ["Santi","Esteve","Alba","Cori"].map(function(o){
     return "<option"+(record.owner===o?" selected":"")+">"+o+"</option>";
   }).join("");
-  var currentStatus = record.jobStatus || record.status || "Abierto";
-  var statusOpts = ["En proceso","Abierto","Standby","Cancelado","Facturado"].map(function(s){
-    return "<option"+(currentStatus===s?" selected":"")+">"+s+"</option>";
+  var currentStatus = EPWorkspace.status(record);
+  var statusOpts = EPWorkspace.states.map(function(s){
+    return "<option value='"+s+"'"+(currentStatus===s?" selected":"")+">"+EPWorkspace.labels[s]+"</option>";
   }).join("");
 
   var modal = document.createElement("div");
@@ -3613,6 +3525,7 @@ function editJob(id, defaults) {
         "<div class='field full'><label>Titulo del job</label><input name='title' value='"+(record.title||"").replace(/'/g,"&#39;")+"' placeholder='Ej: Psiquiatra Adultos'/></div>" +
         "<div class='field'><label>Cliente</label><select name='client'><option value=''>-- Seleccionar --</option>"+clientOpts+"</select></div>" +
         "<div class='field'><label>Responsable</label><select name='owner'>"+ownerOpts+"</select></div>" +
+        "<div class='field'><label>Área</label><select name='businessArea'>"+["Expansion People","Expansion Business"].map(a=>"<option"+((record.businessArea||(id?"Expansion Business":"Expansion People"))===a?" selected":"")+">"+a+"</option>").join("")+"</select></div>" +
         "<div class='field'><label>Estado</label><select name='status'>"+statusOpts+"</select></div>" +
         "<div class='field'><label>Fee %</label><input name='feePercent' type='number' value='"+(record.feePercent||"")+"' placeholder='16'/></div>" +
         "<div class='field full'><label>Notas</label><textarea name='notes' style='width:100%;min-height:60px;padding:8px;border:1.5px solid #CBD5E1;border-radius:8px;font-family:inherit;resize:vertical'>"+(record.notes||"")+"</textarea></div>" +
@@ -3796,6 +3709,8 @@ document.addEventListener("click", (event) => {
     renderPlacements();
   }
 
+  const jobSelect=event.target.closest('[data-job-status],[data-job-owner],[data-job-client]');
+  if(jobSelect){const key=jobSelect.hasAttribute('data-job-status')?'_jobStatusFilter':jobSelect.hasAttribute('data-job-owner')?'_jobOwnerFilter':'_jobClientFilter';window[key]=jobSelect.value;renderJobs();return;}
   const specialtySelect = event.target.closest("[data-specialty-filter]");
   if (specialtySelect) {
     activeFilters.specialty = specialtySelect.value;
@@ -3805,6 +3720,8 @@ document.addEventListener("click", (event) => {
   const add = event.target.closest("[data-add]");
   if (add) editRecord(add.dataset.add);
 
+  const areaFilter=event.target.closest('[data-job-area]');
+  if(areaFilter){window._jobAreaFilter=areaFilter.dataset.jobArea;renderJobs();return;}
   const jobFilter = event.target.closest("[data-job-filter]");
   if (jobFilter) { window._jobStatusFilter = jobFilter.dataset.jobFilter; renderJobs(); return; }
 
@@ -4003,6 +3920,8 @@ document.addEventListener("input", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  const jobSelect=event.target.closest('[data-job-status],[data-job-owner],[data-job-client]');
+  if(jobSelect){const key=jobSelect.hasAttribute('data-job-status')?'_jobStatusFilter':jobSelect.hasAttribute('data-job-owner')?'_jobOwnerFilter':'_jobClientFilter';window[key]=jobSelect.value;renderJobs();return;}
   const specialtySelect = event.target.closest("[data-specialty-filter]");
   if (specialtySelect) {
     activeFilters.specialty = specialtySelect.value;
@@ -5292,7 +5211,7 @@ function renderMetricas() {
   var placements = state.placements || [];
   var tasks = state.tasks || [];
 
-  var openJobs = jobs.filter(function(j){return (j.jobStatus||j.status||"")!=="Cancelado" && (j.jobStatus||j.status||"")!=="Facturado";}).length;
+  var openJobs = jobs.filter(EPWorkspace.active).length;
   var totalJobs = jobs.length;
 
   // Pipeline counts from all jobs
@@ -5339,12 +5258,12 @@ function renderMetricas() {
   }).join("");
 
   // Jobs by status breakdown
-  var statusBreakdown = ["En proceso","Abierto","Standby","Cancelado","Facturado"].map(function(s){
-    var cnt = jobs.filter(function(j){return (j.jobStatus||j.status||"")=== s;}).length;
-    var color = s==="Abierto"||s==="En proceso"?"#22C55E":s==="Standby"?"#94A3B8":s==="Cancelado"?"#EF4444":"#2563EB";
+  var statusBreakdown = EPWorkspace.states.map(function(s){
+    var cnt = jobs.filter(function(j){return EPWorkspace.status(j)===s;}).length;
+    var color = EPWorkspace.colors[s];
     return cnt ? "<div style='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F1F5F9'>" +
       "<div style='display:flex;align-items:center;gap:8px'><span style='width:8px;height:8px;border-radius:50%;background:"+color+";display:inline-block'></span>" +
-      "<span style='font-size:13px;font-weight:600'>"+s+"</span></div>" +
+      "<span style='font-size:13px;font-weight:600'>"+EPWorkspace.labels[s]+"</span></div>" +
       "<span style='font-size:14px;font-weight:800;color:"+color+"'>"+cnt+"</span></div>" : "";
   }).join("");
 
