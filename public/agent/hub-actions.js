@@ -379,6 +379,7 @@
           remaining: updated.minutes * 60,
           running: false,
         });
+      if (globalThis.EPTextEncoding) globalThis.EPTextEncoding.repairState(get());
       env.save();
       return copy(updated);
     }
@@ -433,6 +434,7 @@
       }
       if (entity === "focusActivities" && !items.length)
         s.pomodoro.activities = copy(env.defaultActivities || []);
+      if (globalThis.EPTextEncoding) globalThis.EPTextEncoding.repairState(get());
       env.save();
       return { id, deleted: true };
     }
@@ -465,6 +467,7 @@
         cand.jobs = [cand.jobs, job.title + " - " + job.client]
           .filter(Boolean)
           .join(", ");
+      if (globalThis.EPTextEncoding) globalThis.EPTextEncoding.repairState(get());
       env.save();
       return { candidate_id: cand.id, job_id: job.id, stage };
     }
@@ -493,6 +496,7 @@
           )
           .join(", ");
       } else p[action === "move" ? "stage" : "label"] = value;
+      if (globalThis.EPTextEncoding) globalThis.EPTextEncoding.repairState(get());
       env.save();
       return { candidate_id: candidateId, job_id: jobId, action };
     }
@@ -501,6 +505,7 @@
         index = (c.proposals || []).findIndex((p) => p.id === proposalId);
       if (index < 0) throw Error("Propuesta no encontrada");
       c.proposals.splice(index, 1);
+      if (globalThis.EPTextEncoding) globalThis.EPTextEncoding.repairState(get());
       env.save();
       return { client_id: clientId, proposal_id: proposalId, deleted: true };
     }
@@ -524,6 +529,7 @@
         if (action === "delete") c.callNotes.splice(index, 1);
         else c.callNotes[index].text = text;
       }
+      if (globalThis.EPTextEncoding) globalThis.EPTextEncoding.repairState(get());
       env.save();
       return {
         candidate_id: candidateId,
@@ -615,6 +621,7 @@
       );
       if (existing) c.proposals[c.proposals.indexOf(existing)] = updated;
       else c.proposals.push(updated);
+      if (globalThis.EPTextEncoding) globalThis.EPTextEncoding.repairState(get());
       env.save();
       return {
         client_id: clientId,

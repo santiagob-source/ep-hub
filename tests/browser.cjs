@@ -24,6 +24,7 @@ const handler = require("../api/agent");
       const file = pathname === "/" ? "index.html" : pathname.slice(1);
       if (
         !["index.html", "login.html", "rescate.html"].includes(file) &&
+        !/^public\/flags\/[A-Z]{2}\.svg$/.test(file) &&
         !/^public\/agent\/[a-z-]+\.js$/.test(file)
       ) {
         res.writeHead(404);
@@ -31,7 +32,7 @@ const handler = require("../api/agent");
       }
       res.setHeader(
         "Content-Type",
-        file.endsWith(".js") ? "application/javascript" : "text/html",
+        file.endsWith(".js") ? "application/javascript" : file.endsWith(".svg") ? "image/svg+xml" : "text/html",
       );
       res.end(await fs.readFile(path.join(root, file)));
     } catch (e) {
@@ -453,6 +454,15 @@ const handler = require("../api/agent");
       "false",
     );
     assert.equal(await page.locator("#agent-panel").isVisible(), false);
+    await page.evaluate(() => {
+      state.candidates.push({id:"unicode-check",name:"Ana GarcÃ­a Robles",phone:"+5492325681206",jobs:"DirecciÃ³n Mutua",status:"CV Recibido"});
+      setView("candidates");
+    });
+    assert.ok(await page.getByText("Ana García Robles", {exact:true}).isVisible());
+    assert.ok(await page.getByText("Dirección Mutua", {exact:true}).isVisible());
+    const flag = page.locator('[data-card="unicode-check"] img[alt="AR"]');
+    assert.ok(await flag.isVisible());
+    await page.waitForFunction(() => document.querySelector('[data-card="unicode-check"] img[alt="AR"]')?.naturalWidth > 0);
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",

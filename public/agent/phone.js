@@ -42,5 +42,13 @@
     const flag = match ? [...match[1]].map(c => String.fromCodePoint(127397+c.charCodeAt(0))).join("") : "";
     return [flag, phone].filter(Boolean).join(" ");
   }
-  return { normalize, display };
+  function html(raw) {
+    let value = String(raw || "").trim();
+    // Infer the requested Spanish default for older local numbers, for display only.
+    if (/^[6789]\d{8}$/.test(value.replace(/\s/g, ""))) value = "+34" + value.replace(/\s/g, "");
+    const match = countries.find(([code]) => value.startsWith("+" + code));
+    const safe = value.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+    return (match ? '<img src="/public/flags/' + match[1] + '.svg" alt="' + match[1] + '" width="22" height="15" style="display:inline-block;vertical-align:middle;margin-right:6px;border-radius:2px;border:1px solid #ddd">' : "") + safe;
+  }
+  return { normalize, display, html };
 });

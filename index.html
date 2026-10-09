@@ -1043,15 +1043,16 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/phone.js?v=20261009-lakitty-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-lakitty-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-lakitty-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-lakitty-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-lakitty-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-lakitty-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-lakitty-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-lakitty-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-lakitty-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-unicode-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1173,7 +1174,7 @@ function normalizeState(loaded) {
   loaded.pomodoro.remaining ||= loaded.pomodoro.minutes * 60;
   loaded.pomodoro.activities ||= clone((seed.pomodoro || {}).activities || []);
   loaded.dashWidgets ||= clone(seed.dashWidgets || ["stats","urgentes","candidatos","jobs","placements","tasks"]);
-  return loaded;
+  return EPTextEncoding.repairState(loaded);
 }
 
 function loadState() {
@@ -1678,6 +1679,7 @@ function setView(view) {
 }
 
 function render() {
+  EPTextEncoding.repairState(state);
   if (detailContext?.type === "client") {
     renderClientDetail(detailContext.id);
     return;
@@ -2025,7 +2027,7 @@ function getDirectoryConfig(key) {
     meta: (item) => [
       ["Especialidad", item.specialty || "-"],
       ["Estado", item.status || "-"],
-      ["Telefono", EPPhone.display(item.phone) || "-"],
+      ["Telefono", EPPhone.html(item.phone) || "-"],
       ["Job", item.jobs || "-"],
     ],
     foot: (item) => item.notes || item.interviews || "Sin notas todavia",
@@ -2575,7 +2577,7 @@ function renderClientDetail(id) {
         <div class="panel-header"><h2 class="panel-title">Contacto</h2></div>
         <div class="panel-body detail-list">
           <div><span>Persona</span><strong>${client.contact || "-"}</strong></div>
-          <div><span>Telefono</span><strong>${EPPhone.display(client.phone) || "-"}</strong></div>
+          <div><span>Telefono</span><strong>${EPPhone.html(client.phone) || "-"}</strong></div>
           <div><span>Email</span><strong>${client.email || "-"}</strong></div>
           <div><span>Jobs declarados</span><strong>${client.jobs || "-"}</strong></div>
           <div><span>Razón Social</span><strong>${client.razonSocial || "—"}</strong></div>
@@ -2640,7 +2642,7 @@ function renderCandidateDetail(id) {
         <div class="panel-body detail-list">
           <div><span>Especialidad</span><strong>${candidate.specialty || "-"}</strong></div>
           <div><span>Ubicacion</span><strong>${candidate.location || "-"}</strong></div>
-          <div><span>Telefono</span><strong>${EPPhone.display(candidate.phone) || "-"}</strong></div>
+          <div><span>Telefono</span><strong>${EPPhone.html(candidate.phone) || "-"}</strong></div>
           <div><span>Email</span><strong>${candidate.email || "-"}</strong></div>
           <div><span>LinkedIn</span><strong>${candidate.linkedin || "-"}</strong></div>
           <div><span>CV</span><div style="display:flex;align-items:center;gap:7px">${
