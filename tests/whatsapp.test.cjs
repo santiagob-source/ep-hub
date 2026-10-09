@@ -431,6 +431,20 @@ test("Firestore queue uses only kitty-private with encrypted payloads and CAS pr
     assert.equal(created.payload, "ciphertext");
     await store.update(created, { state: "cancelled" });
     assert.equal(calls, 2);
+    for (const [reason, expected] of [
+      ["FAILED_PRECONDITION", /índices/],
+      ["PERMISSION_DENIED", /condición IAM/],
+    ]) {
+      global.fetch = async () => ({
+        ok: false,
+        status: reason === "PERMISSION_DENIED" ? 403 : 400,
+        json: async () => [{ error: { status: reason } }],
+      });
+      await assert.rejects(
+        store.query([store.filter("state", "EQUAL", "pending")], 1),
+        expected,
+      );
+    }
   } finally {
     global.fetch = original;
     delete process.env.FIREBASE_WHATSAPP_SERVICE_ACCOUNT_JSON;
