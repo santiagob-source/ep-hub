@@ -22,6 +22,12 @@ async function handler(req, res) {
       return res.status(405).json({ ok: false, error: "Método no permitido." });
     res.status(200).json(await worker());
   } catch (e) {
+    // Only our controlled diagnostic messages: never log credentials or provider payloads.
+    const { WhatsAppError } = require("../lib/whatsapp/provider");
+    console.error("[Kitty WhatsApp worker]", {
+      status: e.status || 502,
+      error: e instanceof WhatsAppError ? e.message : "Fallo interno del ejecutor de WhatsApp.",
+    });
     res.status(e.status || 502).json({
       ok: false,
       error: e.status ? e.message : "No se pudo ejecutar la cola de WhatsApp.",
