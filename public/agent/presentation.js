@@ -138,6 +138,7 @@
   }
   function rootPhone(value) { return globalThis.EPPhone ? globalThis.EPPhone.display(value) : value; }
   function results(plan, result) {
+    if (plan.name === "gmail_search") return "";
     if (!Array.isArray(result.items) || !result.items.length) return "";
     const items = result.items || [],
       mail = plan.name === "gmail_search";
