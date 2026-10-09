@@ -1,5 +1,5 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.EPWorkspace=factory();})(globalThis,function(){
-  const states=['Abierto','En proceso','Placement','Standby','Cerrado'];
+  const states=['En proceso','Abierto','Standby','Placement','Cerrado'];
   const labels=Object.fromEntries(states.map(s=>[s,s]));
   const colors={Abierto:'#2563eb','En proceso':'#7c3aed',Placement:'#15803d',Standby:'#b45309',Cerrado:'#64748b'};
   function candidates(job){return (job.pipeline||[]).filter(p=>!['Rechazado','No presentado','Placement'].includes(p.label)&&(p.candidateId||String(p.name||'').trim()));}
@@ -12,6 +12,25 @@
   }
   function area(job){return job.businessArea||'Expansion Business';}
   function active(job){return ['Abierto','En proceso','Standby'].includes(status(job));}
+  const collator=new Intl.Collator('es',{sensitivity:'base',numeric:true});
+  function sortJobs(jobs){return [...jobs].sort((a,b)=>states.indexOf(status(a))-states.indexOf(status(b))||candidates(b).length-candidates(a).length||collator.compare(a.title||'',b.title||'')||collator.compare(a.client||'',b.client||''));}
+  function candidateActivity(candidate,jobs){
+    const key=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+    const links=jobs.flatMap(job=>(job.pipeline||[]).filter(p=>p.candidateId?p.candidateId===candidate.id:key(p.name)===key(candidate.name)).map(p=>({job,p})));
+    const ongoing=links.filter(({job,p})=>['Abierto','En proceso'].includes(status(job))&&!['Rechazado','No presentado','Placement'].includes(p.label));
+    const stages={'busqueda':1,'contactado':2,'entrevista':3,'entrevista c/c':4,'oferta':5};
+    const own=key(candidate.status),inProcess=ongoing.length>0||['en proceso','entrevista','entrevista c/c','oferta'].includes(own);
+    const rank=inProcess?0:['cerrado','descartado','rechazado','no presentado'].includes(own)?4:own==='placement'||links.some(({p})=>p.label==='Placement')?3:['standby','pausado'].includes(own)||links.some(({job})=>status(job)==='Standby')?2:1;
+    const notes=(candidate.callNotes||[]).filter(n=>String(n.text||'').trim());
+    const time=d=>{if(typeof d==='number')return d;if(typeof d!=='string')return 0;if(/^\d{4}-\d{2}-\d{2}/.test(d))return Date.parse(d);const m=d.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:,?\s+(\d{2}):(\d{2}))?/);return m?Date.UTC(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0)):0;};
+    const dates=[candidate.lastContact,candidate.updatedAt,...notes.map(n=>n.date)].map(time).filter(Number.isFinite);
+    return {rank,progress:Math.max(stages[own]||0,...ongoing.map(({p})=>stages[key(p.stage)]||0)),links:ongoing.length,notes:notes.length,recent:Math.max(0,...dates)};
+  }
+  function sortCandidates(candidates,jobs){
+    const ranked=candidates.map(candidate=>({candidate,activity:candidateActivity(candidate,jobs)}));
+    ranked.sort((a,b)=>a.activity.rank-b.activity.rank||b.activity.progress-a.activity.progress||b.activity.links-a.activity.links||b.activity.notes-a.activity.notes||b.activity.recent-a.activity.recent||collator.compare(a.candidate.name||'',b.candidate.name||''));
+    return ranked.map(r=>r.candidate);
+  }
   function missing(client){const absent=key=>!String(client[key]||'').trim()||['-','—'].includes(String(client[key]).trim());return {
     contact:[['contact','Persona de contacto'],['phone','Teléfono'],['email','Email']].filter(([k])=>absent(k)),
     billing:[['razonSocial','Razón social'],['cif','CIF'],['dirFac','Dirección fiscal'],['emailFac','Email de facturación'],['contactFac','Contacto de facturación']].filter(([k])=>absent(k))
@@ -27,5 +46,5 @@
     }).filter(r=>r.count<3||r.gaps.length).sort((a,b)=>a.count-b.count);
     return {clients,jobs};
   }
-  return {states,labels,colors,candidates,status,area,active,missing,year,forecastArea,audit};
+  return {states,labels,colors,candidates,status,area,active,sortJobs,sortCandidates,candidateActivity,missing,year,forecastArea,audit};
 });

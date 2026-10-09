@@ -1056,18 +1056,18 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><button id="agent-attach" class="ghost-button" type="button">📎 Adjuntar</button><input id="agent-file" type="file" accept="application/pdf,image/png,image/jpeg" hidden><span id="agent-file-name" style="font-size:12px"></span><button id="agent-file-remove" type="button" class="ghost-button" hidden>Quitar</button></div><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/workspace.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/text-encoding.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/documents.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-job-states-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-job-states-1"></script>
+    <script src="/public/agent/workspace.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/documents.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-activity-order-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-activity-order-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1979,7 +1979,8 @@ function renderDirectoryView(key) {
   const filter = activeFilters[key] || "Todos";
   const specialtyFilter = activeFilters.specialty || "Todas";
   const specialties = ["Todas", ...new Set(state.candidates.map((candidate) => candidate.specialty).filter(Boolean))];
-  const items = state[key].filter((item) => matchesDirectoryFilter(key, item, filter) && (key !== "candidates" || specialtyFilter === "Todas" || item.specialty === specialtyFilter));
+  let items = state[key].filter((item) => matchesDirectoryFilter(key, item, filter) && (key !== "candidates" || specialtyFilter === "Todas" || item.specialty === specialtyFilter));
+  if(key==="candidates")items=EPWorkspace.sortCandidates(items,state.jobs);
   app.innerHTML = `
     <div class="directory-toolbar">
       <div class="search-wrap">
@@ -2440,7 +2441,7 @@ function renderDataReview(){
 }
 
 function findJobsForClient(clientName) {
-  return state.jobs.filter((job) => normalize(job.client) === normalize(clientName));
+  return EPWorkspace.sortJobs(state.jobs.filter((job) => normalize(job.client) === normalize(clientName)));
 }
 
 function findCandidatesForJob(jobTitle) {
@@ -2538,7 +2539,7 @@ function renderCandidateDetail(id) {
     app.innerHTML = `<section class="panel panel-body">${empty("Candidato no encontrado")}</section>`;
     return;
   }
-  const jobs = state.jobs.filter((job) => normalize(candidate.jobs).includes(normalize(job.title)));
+  const jobs = EPWorkspace.sortJobs(state.jobs.filter((job) => normalize(candidate.jobs).includes(normalize(job.title))));
   app.innerHTML = `
     <button class="ghost-button back-button" type="button" onclick="navBack()">&#8592; Volver</button>
     <section class="detail-hero">
@@ -2658,7 +2659,7 @@ function renderRow(key, row) {
 function renderJobs() {
   const area=window._jobAreaFilter||'Expansion People', sf=window._jobStatusFilter||'Activos';
   const owner=window._jobOwnerFilter||'',client=window._jobClientFilter||'';
-  const jobs=state.jobs.filter(j=>(area==='Todos'||EPWorkspace.area(j)===area)&&(sf==='Todos'?true:sf==='Archivo'?!EPWorkspace.active(j):sf==='Activos'?EPWorkspace.active(j):EPWorkspace.status(j)===sf)&&( !owner||j.owner===owner)&&(!client||j.client===client));
+  const jobs=EPWorkspace.sortJobs(state.jobs.filter(j=>(area==='Todos'||EPWorkspace.area(j)===area)&&(sf==='Todos'?true:sf==='Archivo'?!EPWorkspace.active(j):sf==='Activos'?EPWorkspace.active(j):EPWorkspace.status(j)===sf)&&( !owner||j.owner===owner)&&(!client||j.client===client)));
   const options=(values,value,label)=>'<option value="">'+label+'</option>'+values.filter(Boolean).map(v=>'<option value="'+agentSafe(v)+'" '+(v===value?'selected':'')+'>'+agentSafe(v)+'</option>').join('');
   app.innerHTML='<div class="workspace-tabs">'+['Expansion People','Expansion Business','Todos'].map(a=>'<button class="ghost-button '+(area===a?'selected':'')+'" data-job-area="'+a+'">'+a+'</button>').join('')+'</div><div class="toolbar"><input class="search" type="search" placeholder="Buscar job o cliente…" data-search="jobs"><select class="search" data-job-status><option value="Activos" '+(sf==='Activos'?'selected':'')+'>Activos</option><option value="Archivo" '+(sf==='Archivo'?'selected':'')+'>Archivo</option><option value="Todos" '+(sf==='Todos'?'selected':'')+'>Todos los estados</option>'+EPWorkspace.states.map(s=>'<option value="'+s+'" '+(sf===s?'selected':'')+'>'+EPWorkspace.labels[s]+'</option>').join('')+'</select><select class="search" aria-label="Responsable" data-job-owner>'+options([...new Set(state.jobs.map(j=>j.owner))],owner,'Todos los responsables')+'</select><select class="search" aria-label="Cliente" data-job-client>'+options([...new Set(state.jobs.map(j=>j.client))],client,'Todos los clientes')+'</select><button class="primary-button" data-add-job>+ Nuevo Job</button></div><p class="workspace-hint">'+jobs.length+' jobs · Los nuevos procesos se crean en Expansion People.</p><div class="table-wrap"><table><thead><tr><th>Job / área</th><th>Cliente</th><th>Responsable</th><th>Estado</th><th>Candidatos</th><th>Pendiente</th><th></th></tr></thead><tbody>'+jobs.map(j=>{
     const status=EPWorkspace.status(j), pipeline=j.pipeline||[];

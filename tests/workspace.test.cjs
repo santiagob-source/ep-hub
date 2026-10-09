@@ -38,5 +38,16 @@ test('job lifecycle follows active candidates while retaining manual closed, sta
  job.processStatus='Cerrado';assert.equal(W.status(job),'Cerrado');assert.equal(W.active(job),false);
  job.processStatus='Placement';job.pipeline=[];assert.equal(W.status(job),'Placement');
  assert.equal(W.status({status:'Cubierto'}),'Placement');assert.equal(W.status({status:'Cancelado'}),'Cerrado');
- assert.deepEqual(W.states,['Abierto','En proceso','Placement','Standby','Cerrado']);
+ assert.deepEqual(W.states,['En proceso','Abierto','Standby','Placement','Cerrado']);
+});
+
+test('jobs sort by requested lifecycle priority without changing stored order',()=>{
+ const jobs=[{title:'Closed',status:'Cerrado'},{title:'Placed',status:'Placement'},{title:'Paused',status:'Standby'},{title:'Open',pipeline:[]},{title:'Working',pipeline:[{name:'Ana'}]}];
+ const before=JSON.stringify(jobs);assert.deepEqual(W.sortJobs(jobs).map(W.status),['En proceso','Abierto','Standby','Placement','Cerrado']);assert.equal(JSON.stringify(jobs),before);
+});
+test('candidate ordering uses live pipelines, advancement and notes before inactive candidates',()=>{
+ const candidates=[{id:'new',name:'New',status:'CV Recibido'},{id:'closed',name:'Closed',status:'Descartado'},{id:'search',name:'Search',status:'CV Recibido'},{id:'offer',name:'Offer',status:'CV Recibido'},{id:'notes',name:'Notes',status:'CV Recibido',callNotes:[{text:'Called',date:'2026-10-09'}]}];
+ const jobs=[{pipeline:[{candidateId:'search',name:'Search',stage:'Busqueda'},{candidateId:'offer',name:'Offer',stage:'Oferta'}]}];
+ const before=JSON.stringify(candidates);assert.deepEqual(W.sortCandidates(candidates,jobs).map(c=>c.id),['offer','search','notes','new','closed']);assert.equal(JSON.stringify(candidates),before);
+ jobs[0].processStatus='Cerrado';assert.equal(W.candidateActivity(candidates[2],jobs).rank,1);
 });
