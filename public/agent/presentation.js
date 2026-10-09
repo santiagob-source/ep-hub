@@ -138,8 +138,7 @@
   }
   function rootPhone(value) { return globalThis.EPPhone ? globalThis.EPPhone.display(value) : value; }
   function results(plan, result) {
-    if (!Array.isArray(result.items)) return "";
-    if (!result.items.length && !["search_records", "gmail_search"].includes(plan.name)) return "";
+    if (!Array.isArray(result.items) || !result.items.length) return "";
     const items = result.items || [],
       mail = plan.name === "gmail_search";
     return (
@@ -193,9 +192,6 @@
             "</article>",
         )
         .join("") +
-      (items.length
-        ? ""
-        : "<p>No encontré coincidencias. Probá con otro nombre o una palabra distinta.</p>") +
       "</div>"
     );
   }

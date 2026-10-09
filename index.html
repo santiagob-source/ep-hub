@@ -1043,16 +1043,16 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/text-encoding.js?v=20261009-unicode-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-unicode-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-unicode-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-unicode-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-unicode-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-unicode-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-unicode-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-unicode-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-unicode-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-unicode-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261009-results-1"></script>
+    <script src="/public/agent/phone.js?v=20261009-results-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261009-results-1"></script>
+    <script src="/public/agent/presentation.js?v=20261009-results-1"></script>
+    <script src="/public/agent/message-format.js?v=20261009-results-1"></script>
+    <script src="/public/agent/gmail.js?v=20261009-results-1"></script>
+    <script src="/public/agent/catalog.js?v=20261009-results-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261009-results-1"></script>
+    <script src="/public/agent/engine.js?v=20261009-results-1"></script>
+    <script src="/public/agent/runtime.js?v=20261009-results-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -5412,7 +5412,10 @@ const agentRuntime=EPAgentRuntime.create({
     agentAddMessage('assistant','',html);
   },
   showResult:(plan,result)=>{
-    if(result.items)agentAddMessage('assistant','',EPKittyPresentation.results(plan,result));
+    if(result.items){
+      const html=EPKittyPresentation.results(plan,result);
+      if(html)agentAddMessage('assistant','',html);
+    }
     if(result.boolean)agentAddMessage('assistant','Booleano:\n'+result.boolean);
     if(result.url)agentAddMessage('assistant','', '<a href="'+agentSafe(result.url)+'" target="_blank" rel="noopener">Abrir WhatsApp para '+agentSafe(result.candidate)+'</a>');
     if(result.scheduled)agentAddMessage('assistant','Programado para '+result.scheduled_for+'. Podés pedirme consultar o cancelar tus envíos pendientes.');
