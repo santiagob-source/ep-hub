@@ -1053,22 +1053,22 @@ tr:hover td { background: #FAFBFC; }
       <div class="kitty-toolbar"><span id="kitty-status" class="kitty-status" role="status">Lista para ayudarte</span><button id="agent-gmail" type="button">Conectar Gmail</button><button id="agent-calendar" type="button">Conectar Calendar</button><button id="agent-whatsapp" type="button">WhatsApp</button></div>
       <div id="agent-messages" class="agent-messages" role="log" aria-label="Conversación con La Kitty" aria-live="polite"></div>
       <div class="kitty-shortcuts" aria-label="Sugerencias"><button type="button" data-kitty-prompt="Buscá mis tareas pendientes para hoy.">✓ Mi día</button><button type="button" data-kitty-prompt="¿Qué reuniones tengo hoy en Google Calendar?">📅 Mis reuniones</button><button type="button" data-kitty-prompt="Buscá mis últimos cinco correos y resumilos.">✉ Mis correos</button><button type="button" data-kitty-prompt="Quiero buscar candidatos. Preguntame qué perfil necesito.">⌕ Candidatos</button><button type="button" data-kitty-prompt="Quiero crear una tarea. Preguntame qué tengo que hacer y con quién vincularla.">＋ Crear tarea</button></div>
-      <div class="agent-composer"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><button id="agent-attach" class="ghost-button" type="button">📎 Adjuntar</button><input id="agent-file" type="file" accept=".pdf,.docx,.txt,image/png,image/jpeg" multiple hidden><span id="agent-file-name" style="font-size:12px;display:flex;flex-wrap:wrap;min-width:0"></span><button id="agent-file-remove" type="button" class="ghost-button" hidden>Quitar todos</button></div><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
+      <div class="agent-composer"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><button id="agent-attach" class="ghost-button" type="button">📎 Adjuntar</button><input id="agent-file" type="file" accept=".pdf,.docx,.txt,image/png,image/jpeg" multiple hidden><span id="agent-file-name" style="font-size:12px;display:flex;flex-wrap:wrap;min-width:0"></span><button id="agent-file-remove" type="button" class="ghost-button" hidden>Quitar todos</button></div><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Cambios directos · Envíos e invitaciones con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/workspace.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/text-encoding.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/phone.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/presentation.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/message-format.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/gmail.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/calendar.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/documents.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/catalog.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/engine.js?v=20261013-multi-documents-1"></script>
-    <script src="/public/agent/runtime.js?v=20261013-multi-documents-1"></script>
+    <script src="/public/agent/workspace.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/phone.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/presentation.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/message-format.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/gmail.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/calendar.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/documents.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/catalog.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/engine.js?v=20261013-simple-actions-1"></script>
+    <script src="/public/agent/runtime.js?v=20261013-simple-actions-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -5325,7 +5325,7 @@ const agentRuntime=EPAgentRuntime.create({
     kittyStatus("Esperando tu confirmación",false);
     const resolve=(key,value,data)=>{const entity={candidate_id:'candidates',job_id:'jobs',client_id:'clients',id:data.entity}[key];if(entity){try{const row=hubActions.record(entity,value);return row.name||row.title||value;}catch{}}if(key==='entity')return EPAgentCatalog.entities[value]?.label||value;};
     document.querySelectorAll('.agent-approval').forEach(el=>el.dataset.kittyActive='false');
-    const editable=agentRuntime.pending.plans.filter(p=>p.name==='gmail_create_draft').length===1;
+    const editable=agentRuntime.pending.plans.filter(p=>p.name==='gmail_create_draft'&&agentEngine.requiresConfirmation(p)).length===1;
     const html='<div class="agent-approval" data-kitty-active="true"><div class="agent-approval-title">Revisá lo que voy a hacer</div>'+reviews.map(r=>EPKittyPresentation.review(r,resolve)+(r.requiresConsent?'<label style="display:flex;gap:10px;font-size:12px;margin:12px 0"><input type="checkbox" class="kitty-consent"> Confirmo que este destinatario aceptó recibir mensajes de la empresa por WhatsApp.</label>':'')).join('')+'<div class="agent-approval-buttons">'+(editable?'<button data-agent-edit="'+id+'">Editar</button>':'')+'<button class="agent-approve" data-agent-approve="'+id+'">Confirmar acción</button><button class="agent-reject" data-agent-reject="'+id+'">Cancelar</button></div></div>';
     agentAddMessage('assistant','',html);
   },
@@ -5351,7 +5351,7 @@ function initAgent(){
   document.getElementById('agent-whatsapp').addEventListener('click',async()=>{try{const info=await agentWhatsApp.status();agentAddMessage('assistant',info.scheduler_ready?'WhatsApp está conectado y listo para programar.':info.immediate_ready?'WhatsApp está disponible para enviar ahora. La programación necesita el ejecutor activo.':'WhatsApp está conectado. Falta activar la cola privada y el cron para programar envíos.');}catch(e){agentAddMessage('system',e.message);}});
   document.getElementById('agent-calendar').addEventListener('click',async()=>{try{if(agentRuntime.busy||agentRuntime.pending){agentAddMessage('system','Primero confirmá o cancelá la acción pendiente.');return;}const info=await agentCalendar.status();if(info.connected)agentAddMessage('assistant','Google Calendar está conectado con '+info.email+'. Podés pedirme tus reuniones o crear una nueva.');else await agentCalendar.connect();}catch(e){agentAddMessage('system',e.message);}});
   document.getElementById('agent-gmail').addEventListener('click',async()=>{try{const info=await agentGmail.status();if(info.connected){if(confirm('¿Desconectar '+info.email+' de este navegador?')){await agentGmail.disconnect();await agentCalendar.status();}}else await agentGmail.connect();}catch(e){agentAddMessage('system',e.message);}});
-  const show=visible=>{panel.classList.toggle('open',visible);panel.setAttribute('aria-hidden',String(!visible));launcher.setAttribute('aria-expanded',String(visible));if(visible){agentGmail.status().catch(()=>{});agentCalendar.status().catch(()=>{});if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Hola, soy **La Kitty**.\nTe ayudo a organizar el Hub y trabajar con tu correo. Contame qué necesitás o elegí una sugerencia.\n\nAntes de cambiar datos o enviar algo, siempre te voy a pedir confirmación.');document.getElementById('agent-input').focus();}else launcher.focus();};
+  const show=visible=>{panel.classList.toggle('open',visible);panel.setAttribute('aria-hidden',String(!visible));launcher.setAttribute('aria-expanded',String(visible));if(visible){agentGmail.status().catch(()=>{});agentCalendar.status().catch(()=>{});if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Hola, soy **La Kitty**.\nTe ayudo a organizar el Hub y trabajar con tu correo. Contame qué necesitás o elegí una sugerencia.\n\nPuedo crear y editar tus datos directamente. Te pediré confirmación para envíos, invitaciones y eliminaciones.');document.getElementById('agent-input').focus();}else launcher.focus();};
   launcher.addEventListener('click',()=>show(!panel.classList.contains('open')));
   document.getElementById('agent-close').addEventListener('click',()=>show(false));
   document.getElementById('agent-expand').addEventListener('click',e=>{const expanded=panel.classList.toggle('expanded');e.currentTarget.setAttribute('aria-pressed',String(expanded));e.currentTarget.setAttribute('aria-label',expanded?'Reducir La Kitty':'Ampliar La Kitty');});

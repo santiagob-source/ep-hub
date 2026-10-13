@@ -134,8 +134,11 @@
         }
       }
       // Preserve tool order. Reads after a write wait for the same reviewed batch.
-      while (plans.length && plans[0].effect === "read")
-        outputs.push(await execute(plans.shift()));
+      while (plans.length && (plans[0].effect === "read" || env.engine.requiresConfirmation?.(plans[0]) === false)){
+        const plan=plans.shift();
+        const token=plan.effect==='read'?undefined:env.engine.autoApproval([plan]);
+        outputs.push(await execute(plan,token));
+      }
       if (plans.length) {
         const id = String(++sequence);
         pending = {
@@ -149,7 +152,7 @@
         env.review(
           id,
           plans
-            .filter((p) => p.effect !== "read")
+            .filter((p) => p.effect !== "read" && env.engine.requiresConfirmation?.(p) !== false)
             .map((p) => env.engine.review?.(p) || p.review),
         );
         controls();
@@ -263,7 +266,7 @@
             env.review(
               pending.id,
               plans
-                .filter((p) => p.effect !== "read")
+                .filter((p) => p.effect !== "read" && env.engine.requiresConfirmation?.(p) !== false)
                 .map((p) => env.engine.review?.(p) || p.review),
             );
           } else

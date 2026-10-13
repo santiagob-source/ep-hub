@@ -652,6 +652,8 @@
       });
       return token;
     }
+    function requiresConfirmation(plan){return catalog.requiresConfirmation(plan);}
+    function autoApproval(plans){if(plans.some(plan=>!prepared.has(plan)||requiresConfirmation(plan)))throw Error("Esta acción requiere confirmación del usuario.");return approval(plans);}
     async function execute(plan, token) {
       if (!prepared.has(plan)) throw Error("Plan de acción no verificado");
       if (plan.effect !== "read") {
@@ -689,6 +691,8 @@
       review,
       execute,
       approval,
+      autoApproval,
+      requiresConfirmation,
       snapshot,
       register,
       redact,

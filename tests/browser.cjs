@@ -91,10 +91,8 @@ const handler = require("../api/agent");
     });
     await page.locator("#agent-input").fill("Crea a Ana Test");
     await page.locator("#agent-send").click();
-    await page.locator(".agent-approve:enabled").waitFor();
-    assert.equal(await page.evaluate(() => state.candidates.length), 0);
-    await page.locator(".agent-approve:enabled").click();
     await page.getByText("Candidato creado", { exact: true }).waitFor();
+    assert.equal(await page.locator(".agent-approve:enabled").count(),0);
     assert.equal(await page.evaluate(() => state.candidates.length), 1);
     assert.equal(bodies[1].tool_outputs[0].output.ok, true);
     // Real adapters exercise finance, proposals, files metadata, notes and pipeline functions.

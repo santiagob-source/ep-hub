@@ -213,14 +213,14 @@
   );
   add(
     "create_record",
-    "Crea una entidad con datos explícitos. Requiere confirmación.",
+    "Crea una entidad con datos explícitos directamente, sin confirmación adicional.",
     { entity, data },
     ["entity", "data"],
     "write",
   );
   add(
     "update_record",
-    "Edita SOLO los campos indicados de un registro identificado por ID. Buscar primero; no adivinar IDs. Requiere confirmación.",
+    "Edita SOLO los campos indicados de un registro identificado por ID. Buscar primero; no adivinar IDs. Se ejecuta directamente sin confirmación adicional.",
     { entity, id: str, data },
     ["entity", "id", "data"],
     "write",
@@ -540,7 +540,7 @@
   );
   add(
     "gmail_create_draft",
-    "Crea un borrador después de confirmación. No envía correo.",
+    "Crea un borrador directamente, sin confirmación adicional. No envía correo.",
     {
       to: { type: "array", items: str, minItems: 1, maxItems: 20 },
       subject: str,
@@ -591,16 +591,16 @@
   add("whatsapp_send", "Envía AHORA un WhatsApp tras revisar y confirmar destinatario, mensaje y consentimiento. No necesita fecha ni cron. Ventana de 24h o plantilla aprobada; nunca afirmar entrega si solo se aceptó el envío.", {candidate_id:str,message:str,template_name:str,template_language:str,template_parameters:{type:"array",items:str,maxItems:30}},["candidate_id"],"write");
   add(
     "whatsapp_cancel",
-    "Cancela uno de tus envíos pendientes después de confirmación. Consultá antes sus IDs con whatsapp_list_scheduled.",
+    "Cancela directamente uno de tus envíos pendientes a pedido del usuario. Consultá antes sus IDs con whatsapp_list_scheduled.",
     { schedule_id: str },
     ["schedule_id"],
     "write",
   );
-  add("attach_uploaded_document", "Guarda un adjunto seleccionado por el usuario en un cliente y su job, después de confirmar. Resolver IDs con search_records. No lee el contenido del archivo.", {file_id:{type:"string"},client_id:{type:"string"},job_id:{type:"string"}}, ["file_id","client_id","job_id"], "write");
+  add("attach_uploaded_document", "Guarda un adjunto seleccionado por el usuario en un cliente y su job directamente, sin confirmación adicional. Resolver IDs con search_records. No lee el contenido del archivo.", {file_id:{type:"string"},client_id:{type:"string"},job_id:{type:"string"}}, ["file_id","client_id","job_id"], "write");
   add("calendar_status", "Comprueba la conexión personal de Google Calendar; no confundir con los eventos internos del Hub.", {}, []);
   add("calendar_list_calendars", "Lista los calendarios de Google accesibles y sus permisos. No modifica datos.", {}, []);
   add("calendar_list_events", "Consulta reuniones reales de Google Calendar. Por defecto hoy en Europe/Madrid y los calendarios seleccionados de la cuenta. date_from inclusiva y date_to exclusiva, YYYY-MM-DD; máximo 93 días. Avisar si partial o has_more; no afirmar agenda vacía si hay fallos.", {date_from:str,date_to:str,calendar_id:str,query:str,limit:{type:"integer",minimum:1,maximum:100}}, []);
-  add("calendar_create_event", "Crea una reunión en Google Calendar tras revisión y confirmación. Inicio y fin RFC3339 con offset explícito. Calendario principal por defecto. Invitados reciben invitaciones; Google Meet solo si se solicita. Preguntar los datos faltantes y resolver correos sin inventarlos. No reintentar automáticamente si el resultado es incierto.", {calendar_id:str,title:str,start:str,end:str,description:str,location:str,attendees:{type:"array",items:str},google_meet:{type:"boolean"}}, ["title","start","end"], "write");
+  add("calendar_create_event", "Crea una reunión en Google Calendar: sin invitados se ejecuta directamente; con invitados requiere revisión y confirmación. Inicio y fin RFC3339 con offset explícito. Calendario principal por defecto. Invitados reciben invitaciones; Google Meet solo si se solicita. Preguntar los datos faltantes y resolver correos sin inventarlos. No reintentar automáticamente si el resultado es incierto.", {calendar_id:str,title:str,start:str,end:str,description:str,location:str,attendees:{type:"array",items:str},google_meet:{type:"boolean"}}, ["title","start","end"], "write");
   function effect(def, args) {
     return def.effect === "dynamic"
       ? ["upload", "remove", "upload_signed", "attach_proposal"].includes(
@@ -610,11 +610,21 @@
         : "read"
       : def.effect;
   }
+  function requiresConfirmation(plan){
+    if(plan.effect==='read')return false;
+    if(['create_record','update_record'].includes(plan.name))return !Object.hasOwn(entities,plan.args.entity);
+    if(['pipeline_action','job_finance','forecast_billing','clock_action','focus_action','dashboard_action','generate_report','gmail_create_draft','attach_uploaded_document','whatsapp_cancel'].includes(plan.name))return false;
+    if(plan.name==='candidate_note')return plan.args.action==='delete';
+    if(plan.name==='proposal_action')return ['delete','sign'].includes(plan.args.action);
+    if(plan.name==='calendar_create_event')return (plan.args.attendees||[]).length>0;
+    return true;
+  }
   return {
     entities,
     fields,
     definitions,
     effect,
+    requiresConfirmation,
     tools: definitions.map(({ name, description, parameters }) => ({
       type: "function",
       name,

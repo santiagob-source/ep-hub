@@ -236,7 +236,7 @@ test("duplicate names are returned for user disambiguation instead of guessed", 
     /no encontrado/,
   );
 });
-test("runtime preserves order, pauses writes, rejects stale buttons and reports cancellation to the model", async () => {
+test("runtime applies routine writes in order and still reviews deletion/cancellation", async () => {
   const s = setup(),
     events = [],
     payloads = [];
@@ -278,17 +278,12 @@ test("runtime preserves order, pauses writes, rejects stale buttons and reports 
     finishReview() {},
   });
   await runtime.send("Crea una nota");
-  assert.equal(s.state.notas.length, 0);
-  assert.ok(runtime.pending);
-  const id = runtime.pending.id;
-  await runtime.approve("obsolete");
-  assert.equal(s.state.notas.length, 0);
-  await runtime.approve(id);
-  assert.equal(s.state.notas.length, 1);
-  assert.equal(payloads[1].tool_outputs.length, 3);
-  assert.equal(payloads[1].tool_outputs[2].output.count, 1);
-  await runtime.approve(id);
-  assert.equal(s.state.notas.length, 1);
+  assert.equal(s.state.notas.length,1);
+  assert.equal(runtime.pending,null);
+  assert.equal(events.filter(e=>e[0]==='review').length,0);
+  assert.equal(payloads[1].tool_outputs.length,3);
+  assert.equal(payloads[1].tool_outputs[2].output.count,1);
+  await runtime.approve('obsolete');assert.equal(s.state.notas.length,1);
   // Another proposal is cancelled without mutation.
   const runtime2 = Runtime.create({
     engine: s.engine,
@@ -357,6 +352,7 @@ test("changed data requires a new review and retains outputs of already executed
   const s = setup(),
     payloads = [],
     reviews = [];
+  const target=s.hub.save("notas",null,{title:"A"});
   let turn = 0;
   const runtime = Runtime.create({
     engine: s.engine,
@@ -376,8 +372,8 @@ test("changed data requires a new review and retains outputs of already executed
                   },
                   {
                     call_id: "w",
-                    name: "create_record",
-                    arguments: '{"entity":"notas","data":{"title":"A"}}',
+                    name: "delete_record",
+                    arguments: JSON.stringify({entity:"notas",id:target.id}),
                   },
                 ]
               : [],
@@ -391,16 +387,16 @@ test("changed data requires a new review and retains outputs of already executed
     showResult() {},
     finishReview() {},
   });
-  await runtime.send("Crear");
+  await runtime.send("Eliminar");
   const old = runtime.pending.id;
   s.hub.save("notas", null, { title: "Otro usuario" });
   await runtime.approve(old);
   assert.notEqual(runtime.pending.id, old);
-  assert.equal(s.state.notas.length, 1);
-  await runtime.approve(old);
-  assert.equal(s.state.notas.length, 1);
-  await runtime.approve(runtime.pending.id);
   assert.equal(s.state.notas.length, 2);
+  await runtime.approve(old);
+  assert.equal(s.state.notas.length, 2);
+  await runtime.approve(runtime.pending.id);
+  assert.equal(s.state.notas.length, 1);
   assert.deepEqual(
     payloads.at(-1).tool_outputs.map((o) => o.call_id),
     ["r", "w"],
@@ -562,27 +558,10 @@ test("external staging shows real mailbox preview and never grants write approva
   assert.equal(sent, 1);
 });
 
-test('editing a Gmail proposal stages fresh content and requires a new confirmation', async () => {
-  const staged = [], executed = [];
-  const s = setup({ gmail_create_draft: {
-    stage: async args => { staged.push(structuredClone(args)); return { review: { title: 'Borrador', data: args } }; },
-    execute: async args => { executed.push(structuredClone(args)); return { ok: true }; },
-  } });
-  let turn = 0;
-  const runtime = Runtime.create({
-    engine: s.engine, context: () => ({}), setBusy() {}, message() {}, review() {}, showResult() {}, finishReview() {},
-    fetch: async () => new Response(JSON.stringify({ response_id: 'edit-' + ++turn, text: '', calls: turn === 1 ? [{ call_id: 'draft', name: 'gmail_create_draft', arguments: JSON.stringify({ to: ['alba@example.com'], subject: 'Original', body: 'Original' }) }] : [] })),
-  });
-  await runtime.send('Prepará un borrador');
-  const oldId = runtime.pending.id;
-  await runtime.editDraft(oldId, { subject: 'Editado', body: 'Texto corregido\nGracias' });
-  assert.equal(executed.length, 0);
-  assert.equal(staged.length, 2);
-  assert.notEqual(runtime.pending.id, oldId);
-  await runtime.approve(oldId);
-  assert.equal(executed.length, 0);
-  await runtime.approve(runtime.pending.id);
-  assert.deepEqual(executed, [{ to: ['alba@example.com'], subject: 'Editado', body: 'Texto corregido\nGracias' }]);
+test('Gmail drafts stage their content and execute directly without a confirmation dialog',async()=>{
+ const staged=[],executed=[];const s=setup({gmail_create_draft:{stage:async args=>{staged.push(args);return {review:{title:'Borrador',arguments:args}};},execute:async args=>{executed.push(args);return {ok:true,draft_id:'draft',sent:false};}}});
+ let turn=0,reviews=0;const runtime=Runtime.create({engine:s.engine,context:()=>({}),setBusy(){},message(){},review(){reviews++;},showResult(){},fetch:async(url,o)=>{const body=JSON.parse(o.body);return new Response(JSON.stringify({response_id:'draft-'+(++turn),text:'',calls:body.message?[{call_id:'draft-'+turn,name:'gmail_create_draft',arguments:JSON.stringify({to:['alba@example.com'],subject:'Hola',body:body.message})}]:[]}));}});
+ await runtime.send('Texto original');await runtime.send('Texto corregido');assert.equal(reviews,0);assert.equal(runtime.pending,null);assert.equal(staged.length,2);assert.deepEqual(executed.map(a=>a.body),['Texto original','Texto corregido']);
 });
 
 test('a failed result card cannot report an already created Gmail draft as failed', async () => {
@@ -598,7 +577,7 @@ test('a failed result card cannot report an already created Gmail draft as faile
     },
   });
   await runtime.send('Prepará un borrador');
-  await runtime.approve(runtime.pending.id);
+  assert.equal(runtime.pending,null);
   assert.deepEqual(payloads[1].tool_outputs[0].output, { ok: true, draft_id: 'created', sent: false });
 });
 
@@ -638,4 +617,19 @@ test('Kitty searches computed job states without changing raw financial data',as
  const s=setup();s.state.jobs.push({id:'empty',title:'Sin candidatos',status:'En proceso',pipeline:[]},{id:'with',title:'Con candidatos',status:'Pendiente',pipeline:[{name:'Ana',label:'En proceso'}]});
  const before=JSON.stringify(s.state.jobs);const out=await s.engine.execute(s.plan('search_records',{entity:'jobs',filters:{status:'En proceso'}}));assert.equal(out.count,1);assert.equal(out.items[0].id,'with');
  const read=await s.engine.execute(s.plan('get_record',{entity:'jobs',id:'empty'}));assert.equal(read.status,'Abierto');assert.equal(JSON.stringify(s.state.jobs),before);
+});
+
+test('standing authorization covers routine edits but never external sends, invites, deletes or future tools',()=>{
+ const s=setup();const create=s.plan('create_record',{entity:'jobs',data:{title:'Nueva'}});const token=s.engine.autoApproval([create]);assert.ok(token);
+ for(const plan of [s.plan('gmail_send_draft',{draft_id:'draft'}),s.plan('calendar_create_event',{title:'Meeting',start:'2026-10-14T10:00:00+02:00',end:'2026-10-14T10:30:00+02:00',attendees:['eva@example.com']})])assert.throws(()=>s.engine.autoApproval([plan]),/requiere confirmación/);
+ const solo=s.plan('calendar_create_event',{title:'Personal',start:'2026-10-14T10:00:00+02:00',end:'2026-10-14T10:30:00+02:00'});assert.equal(s.engine.requiresConfirmation(solo),false);
+ assert.throws(()=>s.engine.autoApproval([{...create}]),/requiere confirmación/);
+});
+
+test('mixed batches apply routine changes, pause external sends and continue routine work after approval',async()=>{
+ const sent=[],s=setup({gmail_send_draft:{execute:async args=>{sent.push(args);return {ok:true};}}});let turn=0,reviews=[];
+ const calls=[{call_id:'before',name:'create_record',arguments:{entity:'tasks',data:{title:'Antes'}}},{call_id:'mail',name:'gmail_send_draft',arguments:{draft_id:'draft'}},{call_id:'after',name:'create_record',arguments:{entity:'tasks',data:{title:'Después'}}}];
+ const runtime=Runtime.create({engine:s.engine,context:()=>({}),setBusy(){},message(){},showResult(){},finishReview(){},review:(id,items)=>reviews.push(items),fetch:async()=>new Response(JSON.stringify({response_id:'mixed-'+(++turn),text:'',calls:turn===1?calls:[]}))});
+ await runtime.send('Crear tareas y enviar el correo');assert.deepEqual(s.state.tasks.map(t=>t.title),['Antes']);assert.equal(sent.length,0);assert.equal(reviews[0].length,1);
+ await runtime.approve(runtime.pending.id);assert.equal(sent.length,1);assert.deepEqual(s.state.tasks.map(t=>t.title),['Antes','Después']);
 });
