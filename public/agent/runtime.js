@@ -183,6 +183,7 @@
           await request({
             message,
             context: env.context(),
+            ...(env.attachments?.().length ? {attachments:env.attachments()} : {}),
             ...(responseId ? { previous_response_id: responseId } : {}),
           }),
         );

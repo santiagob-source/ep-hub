@@ -664,6 +664,14 @@ const handler = require("../api/agent");
     assert.ok((await page.locator('.agent-approval[data-kitty-active="true"]').textContent()).includes('Ahora, al confirmar'));
     await page.locator('.agent-approval[data-kitty-active="true"] .kitty-consent').check();await page.locator('.agent-approve:enabled').click();await page.getByText('Mensaje aceptado; entrega pendiente.',{exact:true}).waitFor();
     assert.equal(immediateRequests.length,2);assert.equal(immediateRequests[1].consent,true);
+    let cvRequest;
+    const cvBuffer=Buffer.from('%PDF-1.4\nCV de prueba: experiencia en Medicina del Trabajo');
+    await page.locator('#agent-file').setInputFiles({name:'cv-prueba.pdf',mimeType:'application/pdf',buffer:cvBuffer});await page.waitForFunction(()=>agentDocuments.context()[0]?.name==='cv-prueba.pdf');
+    await page.route('**/api/agent',async route=>{cvRequest=route.request().postDataJSON();const payload=require('../lib/agent/service').buildPayload(cvRequest);assert.equal(payload.input[0].content[1].type,'input_file');return route.fulfill({json:{response_id:'cv-read',text:'El CV muestra experiencia en Medicina del Trabajo.',calls:[]}});});
+    const recordsBefore=await page.evaluate(()=>JSON.stringify({clients:state.clients,candidates:state.candidates,jobs:state.jobs,documents:state.documentFiles}));
+    await page.locator('#agent-input').fill('Leé este CV y dame tu opinión');await page.locator('#agent-send').click();await page.getByText('El CV muestra experiencia en Medicina del Trabajo.',{exact:true}).waitFor();
+    assert.equal(cvRequest.attachments[0].data,'data:application/pdf;base64,'+cvBuffer.toString('base64'));assert.equal(cvRequest.attachments[0].name,'cv-prueba.pdf');assert.equal(cvRequest.context.attachments[0].data,undefined);
+    assert.equal(await page.evaluate(()=>JSON.stringify({clients:state.clients,candidates:state.candidates,jobs:state.jobs,documents:state.documentFiles})),recordsBefore);
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",

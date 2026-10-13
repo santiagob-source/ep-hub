@@ -1056,19 +1056,19 @@ tr:hover td { background: #FAFBFC; }
       <div class="agent-composer"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><button id="agent-attach" class="ghost-button" type="button">📎 Adjuntar</button><input id="agent-file" type="file" accept="application/pdf,image/png,image/jpeg" hidden><span id="agent-file-name" style="font-size:12px"></span><button id="agent-file-remove" type="button" class="ghost-button" hidden>Quitar</button></div><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/workspace.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/text-encoding.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/phone.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/presentation.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/message-format.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/gmail.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/calendar.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/documents.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/catalog.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/engine.js?v=20261013-whatsapp-now-1"></script>
-    <script src="/public/agent/runtime.js?v=20261013-whatsapp-now-1"></script>
+    <script src="/public/agent/workspace.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/phone.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/presentation.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/message-format.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/gmail.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/calendar.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/documents.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/catalog.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/engine.js?v=20261013-read-cv-1"></script>
+    <script src="/public/agent/runtime.js?v=20261013-read-cv-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -5316,6 +5316,7 @@ const agentEngine=EPAgentEngine.create({
 });
 const agentRuntime=EPAgentRuntime.create({
   engine:agentEngine,fetch:(...args)=>fetch(...args),message:agentAddMessage,
+  attachments:()=>agentDocuments.inputFiles(),
   context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser,gmail:agentGmail.context(),calendar:agentCalendar.context(),whatsapp:agentWhatsApp.context(),attachments:agentDocuments.context()}),
   setBusy:value=>{document.getElementById('agent-send').disabled=value;document.getElementById('agent-input').disabled=value;document.querySelectorAll('[data-kitty-prompt]').forEach(b=>b.disabled=value);if(!value)kittyStatus(agentRuntime.pending?'Esperando tu confirmación':'Lista para ayudarte',false);},
   progress:label=>kittyStatus(label,true),

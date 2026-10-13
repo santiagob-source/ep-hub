@@ -123,3 +123,14 @@ test("a new user message retains previous response context without requiring too
   assert.equal(p.previous_response_id, "resp_1");
   assert.match(p.input[0].content, /Ahora edita/);
 });
+
+test('uploaded PDFs and images are sent as native model inputs while context stays metadata-only',()=>{
+ const bytes=Buffer.from('%PDF-1.4\nCV: experiencia en medicina');
+ const attachment={name:'currículum.pdf',type:'application/pdf',size:bytes.length,data:'data:application/pdf;base64,'+bytes.toString('base64')};
+ const payload=buildPayload({message:'Dame tu opinión del CV',context:{attachments:[{file_id:'local',name:attachment.name}]},attachments:[attachment]});
+ assert.equal(payload.input[0].content[0].type,'input_text');assert.equal(payload.input[0].content[1].type,'input_file');assert.equal(payload.input[0].content[1].file_data,attachment.data);assert.equal(payload.input[0].content[1].filename,'currículum.pdf');assert.ok(!payload.input[0].content[0].text.includes('base64'));
+ const png=Buffer.from([137,80,78,71,13,10,26,10]);const image={name:'cv.png',type:'image/png',size:png.length,data:'data:image/png;base64,'+png.toString('base64')};
+ assert.equal(buildPayload({message:'Leé esta imagen',attachments:[image]}).input[0].content[1].type,'input_image');
+ for(const bad of [{...attachment,size:1},{...attachment,data:'data:application/pdf;base64,aGVsbG8='},{...attachment,type:'text/html'},attachment.data])assert.throws(()=>buildPayload({message:'Leé',attachments:[bad]}));
+ assert.throws(()=>buildPayload({message:'Leé',attachments:[attachment,attachment]}));
+});
