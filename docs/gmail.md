@@ -26,3 +26,7 @@ Cada usuario conecta su propia cuenta desde **Conectar Gmail** en el panel del a
 - El envío vuelve a leer el borrador y rechaza cambios posteriores a la revisión. Los correos son datos no confiables para el modelo, nunca instrucciones. Las revisiones muestran también CC, BCC y los adjuntos existentes. Un cambio concurrente en Gmail entre la comprobación y el envío no puede bloquearse con una transacción en Gmail; revisar mientras se confirma evita esa ventana habitual.
 - Esta fase no añade descarga/subida de adjuntos, modificación de etiquetas ni conexión permanente para trabajos en segundo plano. Los cuerpos consultados se limitan a 30.000 caracteres; los correos HTML muestran su fuente en la revisión. Crear borradores admite destinatarios To, asunto y texto simple.
 - Las pruebas simulan Google y no acceden ni escriben en buzones reales. La activación requiere las credenciales del proyecto Google y el consentimiento del titular; un despliegue correcto no acredita una conexión real de Gmail.
+
+## Google Calendar
+
+La Kitty también permite conectar Google Calendar mediante el mismo cliente OAuth y la misma sesión personal. **Conectar Calendar** pide consentimiento adicional; se reutiliza `/api/gmail` como callback. La cuenta es común a Gmail y Calendar, y desconectar Gmail desconecta ambos. La configuración y los límites están en [calendar.md](calendar.md).

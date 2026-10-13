@@ -16,6 +16,13 @@
         })[c],
     );
   const labels = {
+    calendar: "Calendario",
+    start: "Inicio",
+    end: "Fin",
+    timezone: "Zona horaria",
+    attendees: "Invitados",
+    google_meet: "Enlace de Google Meet",
+    description: "Descripción",
     recipient: "Destinatario",
     scheduled_for: "Fecha y hora",
     send_at: "Fecha y hora",

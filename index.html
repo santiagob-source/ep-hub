@@ -992,7 +992,7 @@ tr:hover td { background: #FAFBFC; }
 .agent-panel{position:fixed;right:20px;top:20px;bottom:20px;z-index:9001;width:min(680px,calc(100vw - 40px));background:#fff;border:1px solid #f1d5e5;border-radius:24px;box-shadow:0 24px 100px #b91c7333;display:none;flex-direction:column;overflow:hidden}
 .agent-panel.open{display:flex}.agent-panel.expanded{inset:20px;width:auto;max-width:1200px;margin:auto}
 .agent-head{padding:20px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f5e1ec;gap:12px}.agent-head strong{display:block;color:#b91c73;font-size:23px;letter-spacing:-.7px}.agent-head small{display:block;color:#876779;font-size:12px;margin-top:4px}.kitty-head-actions{display:flex;gap:6px}.agent-close,.kitty-expand{border:1px solid #f1d5e5;border-radius:10px;background:white;width:38px;height:38px;font-size:20px;color:#80516c;cursor:pointer}
-.kitty-toolbar{padding:10px 24px;display:flex;gap:10px;align-items:center;justify-content:space-between;background:#fff7fb;border-bottom:1px solid #f5e1ec}.kitty-toolbar button{font:600 11px 'Plus Jakarta Sans',sans-serif;border:1px solid #f1d5e5;border-radius:999px;background:white;color:#80516c;padding:7px 11px;cursor:pointer;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kitty-status{font-size:11px;color:#876779}.kitty-status.working{color:#b91c73}.kitty-status.working:before{content:' ';display:inline-block;width:7px;height:7px;background:#db5a9c;border-radius:50%;margin-right:6px;animation:kitty-pulse 1s infinite alternate}@keyframes kitty-pulse{to{opacity:.25}}
+.kitty-toolbar{padding:10px 24px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#fff7fb;border-bottom:1px solid #f5e1ec}.kitty-toolbar button{font:600 11px 'Plus Jakarta Sans',sans-serif;border:1px solid #f1d5e5;border-radius:999px;background:white;color:#80516c;padding:7px 11px;cursor:pointer;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kitty-status{font-size:11px;color:#876779}.kitty-status.working{color:#b91c73}.kitty-status.working:before{content:' ';display:inline-block;width:7px;height:7px;background:#db5a9c;border-radius:50%;margin-right:6px;animation:kitty-pulse 1s infinite alternate}@keyframes kitty-pulse{to{opacity:.25}}
 .agent-messages{flex:1;min-height:0;overflow:auto;padding:24px;background:#fdf2f8;overscroll-behavior:contain}.agent-msg{max-width:94%;padding:16px 18px;border-radius:18px;margin:0 0 18px;font-size:14px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}.agent-msg.user{margin-left:auto;background:#b91c73;color:white;border-bottom-right-radius:5px;max-width:85%}.agent-msg.assistant{background:white;border:1px solid #f4dce9;color:#482c3c;border-bottom-left-radius:5px}.agent-msg.system{background:#fff8ef;border:1px solid #f7dcb9;color:#925221;max-width:100%}.agent-msg h3{font-size:15px;line-height:1.5;margin:0 0 12px}.agent-msg ul,.agent-msg ol{padding-left:22px;margin:8px 0;white-space:normal}.agent-msg li{margin:5px 0}.agent-msg p{margin:6px 0}.agent-msg code{background:#fce7f3;padding:2px 5px;border-radius:5px}
 .kitty-shortcuts{display:flex;gap:7px;padding:10px 24px 0;flex-wrap:wrap}.kitty-shortcuts button{border:1px solid #f1d5e5;background:#fff7fb;color:#80516c;border-radius:9px;padding:7px 10px;cursor:pointer;font-size:11px}.kitty-shortcuts button:disabled{opacity:.45;cursor:wait}
 .agent-composer{padding:14px 24px 20px;background:white}.agent-composer textarea{width:100%;box-sizing:border-box;min-height:86px;max-height:160px;resize:vertical;border:1px solid #f1d5e5;border-radius:15px;padding:14px;font:500 14px 'Plus Jakarta Sans',sans-serif;outline:none;background:#fffafd}.agent-composer textarea:focus{border-color:#db5a9c;box-shadow:0 0 0 3px #db5a9c18}.agent-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}.agent-hint{font-size:11px;color:#876779}.agent-send{border:0;border-radius:11px;background:#b91c73;color:white;font-weight:700;padding:11px 20px;cursor:pointer}.agent-send:disabled{opacity:.5;cursor:wait}
@@ -1050,24 +1050,25 @@ tr:hover td { background: #FAFBFC; }
     <button id="agent-launcher" class="agent-launcher" type="button" aria-label="Abrir La Kitty" aria-controls="agent-panel" aria-expanded="false">✦ La Kitty</button>
     <section id="agent-panel" class="agent-panel" aria-label="La Kitty, tu asistente" aria-hidden="true">
       <div class="agent-head"><div><strong>✦ La Kitty</strong><small>Tu Hub y tu correo, en una conversación</small></div><div class="kitty-head-actions"><button id="agent-expand" class="kitty-expand" type="button" aria-label="Ampliar La Kitty" aria-pressed="false">⤢</button><button id="agent-close" class="agent-close" type="button" aria-label="Cerrar La Kitty">×</button></div></div>
-      <div class="kitty-toolbar"><span id="kitty-status" class="kitty-status" role="status">Lista para ayudarte</span><button id="agent-gmail" type="button">Conectar Gmail</button><button id="agent-whatsapp" type="button">WhatsApp</button></div>
+      <div class="kitty-toolbar"><span id="kitty-status" class="kitty-status" role="status">Lista para ayudarte</span><button id="agent-gmail" type="button">Conectar Gmail</button><button id="agent-calendar" type="button">Conectar Calendar</button><button id="agent-whatsapp" type="button">WhatsApp</button></div>
       <div id="agent-messages" class="agent-messages" role="log" aria-label="Conversación con La Kitty" aria-live="polite"></div>
-      <div class="kitty-shortcuts" aria-label="Sugerencias"><button type="button" data-kitty-prompt="Buscá mis tareas pendientes para hoy.">✓ Mi día</button><button type="button" data-kitty-prompt="Buscá mis últimos cinco correos y resumilos.">✉ Mis correos</button><button type="button" data-kitty-prompt="Quiero buscar candidatos. Preguntame qué perfil necesito.">⌕ Candidatos</button><button type="button" data-kitty-prompt="Quiero crear una tarea. Preguntame qué tengo que hacer y con quién vincularla.">＋ Crear tarea</button></div>
+      <div class="kitty-shortcuts" aria-label="Sugerencias"><button type="button" data-kitty-prompt="Buscá mis tareas pendientes para hoy.">✓ Mi día</button><button type="button" data-kitty-prompt="¿Qué reuniones tengo hoy en Google Calendar?">📅 Mis reuniones</button><button type="button" data-kitty-prompt="Buscá mis últimos cinco correos y resumilos.">✉ Mis correos</button><button type="button" data-kitty-prompt="Quiero buscar candidatos. Preguntame qué perfil necesito.">⌕ Candidatos</button><button type="button" data-kitty-prompt="Quiero crear una tarea. Preguntame qué tengo que hacer y con quién vincularla.">＋ Crear tarea</button></div>
       <div class="agent-composer"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><button id="agent-attach" class="ghost-button" type="button">📎 Adjuntar</button><input id="agent-file" type="file" accept="application/pdf,image/png,image/jpeg" hidden><span id="agent-file-name" style="font-size:12px"></span><button id="agent-file-remove" type="button" class="ghost-button" hidden>Quitar</button></div><textarea id="agent-input" aria-label="Mensaje para La Kitty" placeholder="Pedile a La Kitty: buscá, resumí, organizá o prepará una respuesta…"></textarea><div class="agent-actions"><span class="agent-hint">Vos decidís: cambios y envíos con confirmación.<br>Enter para enviar · Shift + Enter para nueva línea</span><button id="agent-send" class="agent-send" type="button">Enviar ↑</button></div></div>
     </section>
 
-    <script src="/public/agent/workspace.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/text-encoding.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/phone.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/whatsapp.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/presentation.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/message-format.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/gmail.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/documents.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/catalog.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/hub-actions.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/engine.js?v=20261009-status-colors-1"></script>
-    <script src="/public/agent/runtime.js?v=20261009-status-colors-1"></script>
+    <script src="/public/agent/workspace.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/text-encoding.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/phone.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/whatsapp.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/presentation.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/message-format.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/gmail.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/calendar.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/documents.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/catalog.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/hub-actions.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/engine.js?v=20261013-calendar-1"></script>
+    <script src="/public/agent/runtime.js?v=20261013-calendar-1"></script>
     <script>
 const uid = () => `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -5300,10 +5301,11 @@ function agentAddMessage(role,text,html){
   box.appendChild(el);box.scrollTop=box.scrollHeight;
 }
 const agentGmail=EPAgentGmail.create({user:()=>fbAuth?.currentUser,changed:info=>{const b=document.getElementById("agent-gmail");if(b){b.textContent=info.connected?"Gmail: "+info.email:"Conectar Gmail";b.title=info.connected?"Clic para desconectar esta cuenta":"Conectar tu cuenta de Google";}}});
+const agentCalendar=EPAgentCalendar.create({user:()=>fbAuth?.currentUser,changed:info=>{const b=document.getElementById("agent-calendar");b.textContent=info.connected?"Calendar ✓":"Conectar Calendar";b.title=info.connected?"Google Calendar: "+info.email:"Autorizar tu agenda de Google";}});
 const agentWhatsApp=EPAgentWhatsApp.create({user:()=>fbAuth?.currentUser,hub:hubActions,consent:()=>{const checks=[...document.querySelectorAll('.agent-approval[data-kitty-active="true"] .kitty-consent')];return checks.length>0&&checks.every(x=>x.checked);},changed:info=>{const b=document.getElementById('agent-whatsapp');b.textContent=info.scheduler_ready?'WhatsApp ✓':'WhatsApp · revisar';}});
 const agentDocuments=EPAgentDocuments.create({getState:()=>state,uid,save:saveState,changed:files=>{document.getElementById("agent-file-name").textContent=files[0]?.name||"";document.getElementById("agent-file-remove").hidden=!files.length;}});
 const agentEngine=EPAgentEngine.create({
-  adapters:{...agentGmail.adapters,...agentWhatsApp.adapters,...agentDocuments.adapters},
+  adapters:{...agentGmail.adapters,...agentCalendar.adapters,...agentWhatsApp.adapters,...agentDocuments.adapters},
   hub:hubActions,getState:()=>state,normalize,save:saveState,refresh:render,
   documentText:a=>document.querySelector(a.kind==='job_description'?'#jd-txt':a.kind==='job_email'?'#email-mati-txt':'#em-txt-'+a.id)?.value||'',
   functions:{jd_remove,jd_drop,jd_label,jd_month,jd_clearMonth,fc_bill,fc_unbill,
@@ -5314,7 +5316,7 @@ const agentEngine=EPAgentEngine.create({
 });
 const agentRuntime=EPAgentRuntime.create({
   engine:agentEngine,fetch:(...args)=>fetch(...args),message:agentAddMessage,
-  context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser,gmail:agentGmail.context(),whatsapp:agentWhatsApp.context(),attachments:agentDocuments.context()}),
+  context:()=>({counts:Object.fromEntries(Object.keys(EPAgentCatalog.entities).map(k=>[k,hubActions.list(k).length])),currentView,currentUser:state.currentUser,gmail:agentGmail.context(),calendar:agentCalendar.context(),whatsapp:agentWhatsApp.context(),attachments:agentDocuments.context()}),
   setBusy:value=>{document.getElementById('agent-send').disabled=value;document.getElementById('agent-input').disabled=value;document.querySelectorAll('[data-kitty-prompt]').forEach(b=>b.disabled=value);if(!value)kittyStatus(agentRuntime.pending?'Esperando tu confirmación':'Lista para ayudarte',false);},
   progress:label=>kittyStatus(label,true),
   finishReview:()=>document.querySelectorAll('.agent-approval-buttons button').forEach(b=>b.disabled=true),
@@ -5346,8 +5348,9 @@ function kittyStatus(label,working){const el=document.getElementById('kitty-stat
 function initAgent(){
   const launcher=document.getElementById('agent-launcher'),panel=document.getElementById('agent-panel');if(!launcher||!panel)return;
   document.getElementById('agent-whatsapp').addEventListener('click',async()=>{try{const info=await agentWhatsApp.status();agentAddMessage('assistant',info.scheduler_ready?'WhatsApp está conectado y listo para programar.':'WhatsApp está conectado. Falta activar la cola privada y el cron para programar envíos.');}catch(e){agentAddMessage('system',e.message);}});
-  document.getElementById('agent-gmail').addEventListener('click',async()=>{try{const info=await agentGmail.status();if(info.connected){if(confirm('¿Desconectar '+info.email+' de este navegador?'))await agentGmail.disconnect();}else await agentGmail.connect();}catch(e){agentAddMessage('system',e.message);}});
-  const show=visible=>{panel.classList.toggle('open',visible);panel.setAttribute('aria-hidden',String(!visible));launcher.setAttribute('aria-expanded',String(visible));if(visible){agentGmail.status().catch(()=>{});if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Hola, soy **La Kitty**.\nTe ayudo a organizar el Hub y trabajar con tu correo. Contame qué necesitás o elegí una sugerencia.\n\nAntes de cambiar datos o enviar algo, siempre te voy a pedir confirmación.');document.getElementById('agent-input').focus();}else launcher.focus();};
+  document.getElementById('agent-calendar').addEventListener('click',async()=>{try{if(agentRuntime.busy||agentRuntime.pending){agentAddMessage('system','Primero confirmá o cancelá la acción pendiente.');return;}const info=await agentCalendar.status();if(info.connected)agentAddMessage('assistant','Google Calendar está conectado con '+info.email+'. Podés pedirme tus reuniones o crear una nueva.');else await agentCalendar.connect();}catch(e){agentAddMessage('system',e.message);}});
+  document.getElementById('agent-gmail').addEventListener('click',async()=>{try{const info=await agentGmail.status();if(info.connected){if(confirm('¿Desconectar '+info.email+' de este navegador?')){await agentGmail.disconnect();await agentCalendar.status();}}else await agentGmail.connect();}catch(e){agentAddMessage('system',e.message);}});
+  const show=visible=>{panel.classList.toggle('open',visible);panel.setAttribute('aria-hidden',String(!visible));launcher.setAttribute('aria-expanded',String(visible));if(visible){agentGmail.status().catch(()=>{});agentCalendar.status().catch(()=>{});if(!document.getElementById('agent-messages').children.length)agentAddMessage('assistant','Hola, soy **La Kitty**.\nTe ayudo a organizar el Hub y trabajar con tu correo. Contame qué necesitás o elegí una sugerencia.\n\nAntes de cambiar datos o enviar algo, siempre te voy a pedir confirmación.');document.getElementById('agent-input').focus();}else launcher.focus();};
   launcher.addEventListener('click',()=>show(!panel.classList.contains('open')));
   document.getElementById('agent-close').addEventListener('click',()=>show(false));
   document.getElementById('agent-expand').addEventListener('click',e=>{const expanded=panel.classList.toggle('expanded');e.currentTarget.setAttribute('aria-pressed',String(expanded));e.currentTarget.setAttribute('aria-label',expanded?'Reducir La Kitty':'Ampliar La Kitty');});

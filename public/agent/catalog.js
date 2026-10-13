@@ -596,6 +596,10 @@
     "write",
   );
   add("attach_uploaded_document", "Guarda un adjunto seleccionado por el usuario en un cliente y su job, después de confirmar. Resolver IDs con search_records. No lee el contenido del archivo.", {file_id:{type:"string"},client_id:{type:"string"},job_id:{type:"string"}}, ["file_id","client_id","job_id"], "write");
+  add("calendar_status", "Comprueba la conexión personal de Google Calendar; no confundir con los eventos internos del Hub.", {}, []);
+  add("calendar_list_calendars", "Lista los calendarios de Google accesibles y sus permisos. No modifica datos.", {}, []);
+  add("calendar_list_events", "Consulta reuniones reales de Google Calendar. Por defecto hoy en Europe/Madrid y los calendarios seleccionados de la cuenta. date_from inclusiva y date_to exclusiva, YYYY-MM-DD; máximo 93 días. Avisar si partial o has_more; no afirmar agenda vacía si hay fallos.", {date_from:str,date_to:str,calendar_id:str,query:str,limit:{type:"integer",minimum:1,maximum:100}}, []);
+  add("calendar_create_event", "Crea una reunión en Google Calendar tras revisión y confirmación. Inicio y fin RFC3339 con offset explícito. Calendario principal por defecto. Invitados reciben invitaciones; Google Meet solo si se solicita. Preguntar los datos faltantes y resolver correos sin inventarlos. No reintentar automáticamente si el resultado es incierto.", {calendar_id:str,title:str,start:str,end:str,description:str,location:str,attendees:{type:"array",items:str},google_meet:{type:"boolean"}}, ["title","start","end"], "write");
   function effect(def, args) {
     return def.effect === "dynamic"
       ? ["upload", "remove", "upload_signed", "attach_proposal"].includes(

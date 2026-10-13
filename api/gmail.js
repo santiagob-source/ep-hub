@@ -1,4 +1,5 @@
 const crypto = require("node:crypto");
+const calendar = require("../lib/calendar/service");
 const gmail = require("../lib/gmail/service");
 const { verifyFirebaseToken } = require("../lib/gmail/auth");
 const session = require("../lib/gmail/session");
@@ -54,13 +55,12 @@ module.exports = async function handler(req, res) {
       });
       if (
         !token.refresh_token ||
-        !scope
-          .split(" ")
+        ![...scope.split(" "), ...(saved.calendar ? calendar.SCOPES : [])]
           .every((s) => (token.scope || "").split(" ").includes(s))
       )
         throw new gmail.GmailError(
           403,
-          "Concedé los permisos de lectura y borradores para conectar Gmail.",
+          saved.calendar ? "Concedé los permisos de Gmail y Google Calendar para conectar la cuenta." : "Concedé los permisos de lectura y borradores para conectar Gmail.",
         );
       const profile = await gmail.callGoogle(token.access_token, "profile");
       res.setHeader("Set-Cookie", [
@@ -71,6 +71,7 @@ module.exports = async function handler(req, res) {
             uid: saved.uid,
             refresh: token.refresh_token,
             email: profile.emailAddress,
+            calendar: !!saved.calendar,
             expires: Date.now() + 30 * 86400000,
           }),
           30 * 86400,
@@ -78,7 +79,7 @@ module.exports = async function handler(req, res) {
         session.cookie("ep_gmail_state", "", 0),
       ]);
       res.statusCode = 303;
-      res.setHeader("Location", ORIGIN + "/?gmail=connected");
+      res.setHeader("Location", ORIGIN + "/?gmail=connected" + (saved.calendar ? "&calendar=connected" : ""));
       res.end();
       return;
     }
@@ -104,7 +105,7 @@ module.exports = async function handler(req, res) {
         .status(200)
         .json({
           configured: configured(),
-          connected: !!account,
+          connected: body.service === "calendar" ? !!account?.calendar : !!account,
           email: account?.email || "",
         });
       return;
@@ -120,6 +121,8 @@ module.exports = async function handler(req, res) {
         "Falta configurar Google OAuth y la clave de cifrado de Gmail en Vercel.",
       );
     if (body.action === "connect") {
+      let previous;try{previous=session.open(session.cookies(req).ep_gmail,"mailbox",user.sub);}catch{}
+      const includeCalendar=body.service==="calendar"||!!previous?.calendar;
       const state = crypto.randomBytes(24).toString("base64url"),
         verifier = crypto.randomBytes(32).toString("base64url");
       res.setHeader(
@@ -128,6 +131,7 @@ module.exports = async function handler(req, res) {
           "ep_gmail_state",
           session.seal({
             kind: "oauth",
+            calendar: includeCalendar,
             state,
             verifier,
             uid: user.sub,
@@ -140,7 +144,7 @@ module.exports = async function handler(req, res) {
         client_id: process.env.GOOGLE_CLIENT_ID,
         redirect_uri: CALLBACK,
         response_type: "code",
-        scope,
+        scope: scope + (includeCalendar ? " " + calendar.SCOPES.join(" ") : ""),
         state,
         code_challenge: crypto
           .createHash("sha256")
@@ -160,6 +164,7 @@ module.exports = async function handler(req, res) {
       "mailbox",
       user.sub,
     );
+    if (String(body.tool||"").startsWith("calendar_") && !account.calendar) throw new gmail.GmailError(403,"Conectá Calendar desde La Kitty y autorizá el acceso a tu agenda de Google.");
     const token = (
       await oauth({
         grant_type: "refresh_token",
@@ -171,7 +176,8 @@ module.exports = async function handler(req, res) {
     let result;
     if (body.action === "prepare") {
       let review, fingerprint;
-      if (tool === "gmail_create_draft") review = gmail.validateDraft(args);
+      if (tool === "calendar_create_event") review = await calendar.prepareEvent(token,args);
+      else if (tool === "gmail_create_draft") review = gmail.validateDraft(args);
       else if (tool === "gmail_send_draft") {
         review = await gmail.getDraft(token, args.draft_id);
         fingerprint = gmail.fingerprint(review);
@@ -184,22 +190,23 @@ module.exports = async function handler(req, res) {
           tool,
           hash: gmail.fingerprint(args),
           fingerprint,
+          ...(tool === "calendar_create_event" ? {eventId:calendar.newEventId(),calendarId:review.calendar_id} : {}),
           expires: Date.now() + 300000,
         }),
         review: {
           title:
-            tool === "gmail_send_draft"
+            tool === "calendar_create_event" ? "Crear reunión en Google Calendar de " + account.email : tool === "gmail_send_draft"
               ? "Enviar correo desde " + account.email
               : "Crear borrador en " + account.email,
-          arguments: review,
+          arguments: tool === "calendar_create_event" ? {...Object.fromEntries(Object.entries(review).filter(([key])=>key!=="calendar_id")),start:new Intl.DateTimeFormat("es-ES",{timeZone:calendar.TIMEZONE,dateStyle:"full",timeStyle:"short"}).format(new Date(review.start)),end:new Intl.DateTimeFormat("es-ES",{timeZone:calendar.TIMEZONE,dateStyle:"full",timeStyle:"short"}).format(new Date(review.end))} : review,
           effects:
-            tool === "gmail_send_draft"
+            tool === "calendar_create_event" ? (review.attendees.length ? "Se creará el evento y se enviarán invitaciones a los correos indicados." : "Se creará el evento en tu calendario, sin enviar invitaciones.") : tool === "gmail_send_draft"
               ? "Se enviará este borrador a los destinatarios indicados."
               : "Se guardará el borrador. No se enviará ningún correo.",
         },
       };
     } else if (body.action === "execute") {
-      if (["gmail_create_draft", "gmail_send_draft"].includes(tool)) {
+      if (["gmail_create_draft", "gmail_send_draft", "calendar_create_event"].includes(tool)) {
         const approval = session.open(body.capability, "approval", user.sub);
         if (
           approval.email !== account.email ||
@@ -220,7 +227,15 @@ module.exports = async function handler(req, res) {
             "El borrador cambió en Gmail. Revisalo y confirmalo nuevamente.",
           );
       }
-      if (tool === "gmail_search") result = await gmail.search(token, args);
+      if (tool === "calendar_create_event") {
+        const approval=session.open(body.capability,"approval",user.sub);
+        const event=await calendar.prepareEvent(token,args);
+        if(event.calendar_id!==approval.calendarId)throw new gmail.GmailError(409,"El calendario cambió. Revisá y confirmá nuevamente.");
+        result=await calendar.createEvent(token,event,approval.eventId);
+      }
+      else if (tool === "calendar_list_events") result=await calendar.listEvents(token,args);
+      else if (tool === "calendar_list_calendars") result=await calendar.calendars(token);
+      else if (tool === "gmail_search") result = await gmail.search(token, args);
       else if (tool === "gmail_read")
         result = await gmail.read(token, args.message_id);
       else if (tool === "gmail_get_draft")
@@ -239,7 +254,7 @@ module.exports = async function handler(req, res) {
         ok: false,
         error: error.status
           ? error.message
-          : "No se pudo completar la operación de Gmail.",
+          : "No se pudo completar la operación con Google.",
       });
   }
 };

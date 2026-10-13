@@ -625,6 +625,33 @@ const handler = require("../api/agent");
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.locator('.metrics-grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),1);
     await page.screenshot({path:'/tmp/metrics-color.png',fullPage:true});
+    let calendarWrites=0,calendarMode='read';
+    await page.route('**/api/gmail',async route=>{
+      const body=route.request().postDataJSON();
+      if(body.service!=='calendar')return route.fulfill({json:{connected:false,configured:true,email:''}});
+      if(body.action==='status')return route.fulfill({json:{connected:true,configured:true,email:'test@example.com'}});
+      if(body.action==='prepare')return route.fulfill({json:{capability:'test-capability',review:{title:'Crear reunión en Google Calendar',arguments:{calendar:'Personal',title:'Seguimiento',start:'miércoles, 14 de octubre de 2026, 10:00',end:'miércoles, 14 de octubre de 2026, 10:30',attendees:['eva@example.com'],google_meet:false},effects:'Se creará el evento y se enviarán invitaciones a los correos indicados.'}}});
+      if(body.tool==='calendar_list_events')return route.fulfill({json:{events:[{title:'Reunión real de Google',start:'2026-10-13T10:00:00+02:00'}],count:1,partial:false,has_more:false}});
+      if(body.tool==='calendar_create_event'){calendarWrites++;return route.fulfill({json:{ok:true,created:true,event:{id:'new-google-event',title:'Seguimiento'}}});}
+      return route.fulfill({json:{calendars:[]}});
+    });
+    await page.evaluate(()=>{fbAuth={currentUser:{getIdToken:async()=>'test-token'}};});
+    await page.evaluate(()=>agentCalendar.status());
+    assert.equal(await page.locator('#agent-calendar').textContent(),'Calendar ✓');
+    await page.route('**/api/agent',async route=>{
+      const body=route.request().postDataJSON();
+      if(body.tool_outputs)return route.fulfill({json:{response_id:'calendar-done-'+calendarMode,text:calendarMode==='read'?'Hoy tenés Reunión real de Google a las 10:00.':'Reunión creada en Google Calendar.',calls:[]}});
+      return route.fulfill({json:{response_id:'calendar-call-'+calendarMode,text:'',calls:[{call_id:'google-'+calendarMode,name:calendarMode==='read'?'calendar_list_events':'calendar_create_event',arguments:JSON.stringify(calendarMode==='read'?{}:{title:'Seguimiento',start:'2026-10-14T10:00:00+02:00',end:'2026-10-14T10:30:00+02:00',attendees:['eva@example.com']})}]}});
+    });
+    await page.locator('#agent-launcher').click();
+    await page.locator('#agent-input').fill('¿Qué meetings tengo hoy?');await page.locator('#agent-send').click();
+    await page.getByText('Hoy tenés Reunión real de Google a las 10:00.',{exact:true}).waitFor();
+    assert.equal(calendarWrites,0);
+    calendarMode='create';await page.locator('#agent-input').fill('Creá Seguimiento mañana a las 10 con Eva durante 30 minutos');await page.locator('#agent-send').click();
+    await page.locator('.agent-approve:enabled').waitFor();assert.equal(calendarWrites,0);
+    assert.ok((await page.locator('.agent-approval[data-kitty-active="true"]').textContent()).includes('eva@example.com'));
+    assert.ok((await page.locator('.agent-approval[data-kitty-active="true"]').textContent()).includes('invitaciones'));
+    await page.locator('.agent-approve:enabled').click();await page.getByText('Reunión creada en Google Calendar.',{exact:true}).waitFor();assert.equal(calendarWrites,1);
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",
