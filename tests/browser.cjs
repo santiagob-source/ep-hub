@@ -652,6 +652,18 @@ const handler = require("../api/agent");
     assert.ok((await page.locator('.agent-approval[data-kitty-active="true"]').textContent()).includes('eva@example.com'));
     assert.ok((await page.locator('.agent-approval[data-kitty-active="true"]').textContent()).includes('invitaciones'));
     await page.locator('.agent-approve:enabled').click();await page.getByText('Reunión creada en Google Calendar.',{exact:true}).waitFor();assert.equal(calendarWrites,1);
+    const immediateRequests=[];
+    await page.evaluate(()=>{state.candidates.push({id:'alba-immediate',name:'Alba prueba',phone:'600111222'});});
+    await page.route('**/api/whatsapp',async route=>{
+      const body=route.request().postDataJSON();immediateRequests.push(body);
+      return route.fulfill({json:body.action==='prepare'?{capability:'immediate-capability',review:{title:'Enviar WhatsApp ahora',arguments:{recipient:'Alba prueba',phone:'+34600111222',message:'Hola Alba',scheduled_for:'Ahora, al confirmar'},requiresConsent:true,effects:'Se enviará al confirmar.'}}:{ok:true,accepted:true,scheduled:false,status:'accepted'}});
+    });
+    await page.route('**/api/agent',async route=>{const body=route.request().postDataJSON();return route.fulfill({json:body.tool_outputs?{response_id:'immediate-done',text:'Mensaje aceptado; entrega pendiente.',calls:[]}:{response_id:'immediate-call',text:'',calls:[{name:'whatsapp_send',call_id:'immediate-send',arguments:JSON.stringify({candidate_id:'alba-immediate',message:'Hola Alba'})}]}});});
+    await page.locator('#agent-input').fill('Mandale ahora Hola Alba a Alba prueba');await page.locator('#agent-send').click();await page.locator('.agent-approve:enabled').waitFor();
+    assert.equal(immediateRequests.length,1);assert.equal(immediateRequests[0].tool,'whatsapp_send');assert.equal(immediateRequests[0].args.phone,'+34600111222');assert.equal(immediateRequests[0].args.send_at,undefined);
+    assert.ok((await page.locator('.agent-approval[data-kitty-active="true"]').textContent()).includes('Ahora, al confirmar'));
+    await page.locator('.agent-approval[data-kitty-active="true"] .kitty-consent').check();await page.locator('.agent-approve:enabled').click();await page.getByText('Mensaje aceptado; entrega pendiente.',{exact:true}).waitFor();
+    assert.equal(immediateRequests.length,2);assert.equal(immediateRequests[1].consent,true);
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",

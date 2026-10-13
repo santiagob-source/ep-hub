@@ -102,3 +102,7 @@ Los datos del destinatario y texto quedan cifrados en una cola independiente; el
 - `lib/whatsapp/deadline.js`: presupuesto global de solicitudes para abortar antes del límite de Vercel; si la respuesta de un POST es incierta, se conserva la reserva y no se repite el envío.
 
 Sin estos requisitos, el Hub, Gmail y los enlaces manuales `prepare_whatsapp` continúan funcionando; la programación permanece bloqueada con una explicación del requisito faltante.
+
+## Envíos inmediatos
+
+`whatsapp_send` envía al confirmar, sin fecha futura y sin depender del cron. Usa el mismo canal, ventana de 24 horas o plantilla aprobada, consentimiento y registro privado que los envíos programados. La cola privada sigue siendo necesaria para reservar el intento de forma atómica y evitar duplicados. Una reserva inmediata entra en estado `sending`, que el cron no vuelve a enviar. Resultados inciertos quedan en `unknown`, y repetir la misma confirmación no genera otro mensaje. `accepted` significa aceptado por respond.io; la entrega se comprueba aparte con el ejecutor o en respond.io. No se mandan mensajes reales como parte de las pruebas.

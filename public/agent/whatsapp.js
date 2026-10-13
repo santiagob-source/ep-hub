@@ -28,26 +28,21 @@
       "whatsapp_templates",
       "whatsapp_list_scheduled",
       "whatsapp_schedule",
+      "whatsapp_send",
       "whatsapp_cancel",
     ])
       adapters[name] = {
         check: (args) => {
-          if (name === "whatsapp_schedule")
+          if (["whatsapp_schedule","whatsapp_send"].includes(name))
             env.hub.record("candidates", args.candidate_id);
         },
         stage: async (args) => {
-          if (!["whatsapp_schedule", "whatsapp_cancel"].includes(name))
+          if (!["whatsapp_schedule", "whatsapp_send", "whatsapp_cancel"].includes(name))
             return null;
           let serverArgs = { ...args };
-          if (name === "whatsapp_schedule") {
+          if (["whatsapp_schedule","whatsapp_send"].includes(name)) {
             const c = env.hub.record("candidates", args.candidate_id);
-            const phone = String(c.phone || "")
-              .replace(/[\s()-]/g, "")
-              .replace(/^00/, "+");
-            if (!/^\+[1-9]\d{7,14}$/.test(phone))
-              throw Error(
-                "El candidato necesita un teléfono con prefijo internacional. Actualizá su ficha antes de programar.",
-              );
+            const phone = EPPhone.normalize(c.phone,c.phoneCountry);
             serverArgs = { ...args, recipient: c.name, phone };
           }
           return {
@@ -65,7 +60,7 @@
             tool: name,
             args: staged?.serverArgs || args,
             capability: staged?.capability,
-            consent: name === "whatsapp_schedule" ? env.consent() : undefined,
+            consent: ["whatsapp_schedule","whatsapp_send"].includes(name) ? env.consent() : undefined,
           });
           if (name === "whatsapp_status") {
             info = data;

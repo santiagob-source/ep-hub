@@ -588,6 +588,7 @@
     ["candidate_id", "send_at"],
     "write",
   );
+  add("whatsapp_send", "Envía AHORA un WhatsApp tras revisar y confirmar destinatario, mensaje y consentimiento. No necesita fecha ni cron. Ventana de 24h o plantilla aprobada; nunca afirmar entrega si solo se aceptó el envío.", {candidate_id:str,message:str,template_name:str,template_language:str,template_parameters:{type:"array",items:str,maxItems:30}},["candidate_id"],"write");
   add(
     "whatsapp_cancel",
     "Cancela uno de tus envíos pendientes después de confirmación. Consultá antes sus IDs con whatsapp_list_scheduled.",

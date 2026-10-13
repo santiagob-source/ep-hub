@@ -534,3 +534,27 @@ test("request deadlines abort provider calls before Vercel timeout and POST ambi
     global.fetch = original;
   }
 });
+
+test('immediate sends need confirmation and consent, skip cron, and replay does not send again',async()=>{
+ const f=fixture();try{
+  f.write('worker',{last_run:1});const args={candidate_id:'c1',recipient:'Eva',phone:'+34600111222',message:'Hola Eva'};
+  const prep=await service.prepare('owner','whatsapp_send',args);assert.equal(prep.review.title,'Enviar WhatsApp ahora');assert.equal(f.sent,0);
+  await assert.rejects(service.execute('owner','whatsapp_send',args,prep.capability,false),/aceptó recibir/);assert.equal(f.sent,0);
+  const result=await service.execute('owner','whatsapp_send',args,prep.capability,true);assert.equal(result.accepted,true);assert.equal(result.scheduled,false);assert.equal(result.status,'accepted');assert.equal(f.sent,1);
+  await service.execute('owner','whatsapp_send',args,prep.capability,true);assert.equal(f.sent,1);assert.equal(f.docs.get(result.id).state,'accepted');
+ }finally{f.restore();}
+});
+test('immediate sends recheck the conversation window and never resend uncertain results',async()=>{
+ const f=fixture();try{
+  const args={candidate_id:'c1',recipient:'Eva',phone:'+34600111222',message:'Hola Eva'};
+  const prep=await service.prepare('owner','whatsapp_send',args);provider.assertWindow=async()=>{throw new provider.WhatsAppError(400,'Window closed');};
+  const failed=await service.execute('owner','whatsapp_send',args,prep.capability,true);assert.equal(failed.status,'failed');assert.equal(f.sent,0);
+  provider.assertWindow=async()=>{};const second=await service.prepare('owner','whatsapp_send',args);f.uncertain();const unknown=await service.execute('owner','whatsapp_send',args,second.capability,true);assert.equal(unknown.status,'unknown');assert.equal(f.sent,1);
+  await service.execute('owner','whatsapp_send',args,second.capability,true);assert.equal(f.sent,1);
+ }finally{f.restore();}
+});
+test('conversation windows accept numeric channel IDs and seconds, milliseconds or ISO times without opening expired windows',()=>{
+ const now=Date.now();for(const time of [now-1000,Math.floor((now-1000)/1000),new Date(now-1000).toISOString()])assert.equal(provider.windowInfo([{id:'565351',lastIncomingMessageTime:time}],now).window_open,true);
+ for(const time of [0,now-86400000,now+120000,'not-a-time'])assert.equal(provider.windowInfo([{id:565351,lastIncomingMessageTime:time}],now).window_open,false);
+ assert.equal(provider.windowInfo([{id:999,lastIncomingMessageTime:now}],now).window_open,false);
+});
