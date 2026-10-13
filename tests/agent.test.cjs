@@ -132,5 +132,5 @@ test('uploaded PDFs and images are sent as native model inputs while context sta
  const png=Buffer.from([137,80,78,71,13,10,26,10]);const image={name:'cv.png',type:'image/png',size:png.length,data:'data:image/png;base64,'+png.toString('base64')};
  assert.equal(buildPayload({message:'Leé esta imagen',attachments:[image]}).input[0].content[1].type,'input_image');
  for(const bad of [{...attachment,size:1},{...attachment,data:'data:application/pdf;base64,aGVsbG8='},{...attachment,type:'text/html'},attachment.data])assert.throws(()=>buildPayload({message:'Leé',attachments:[bad]}));
- assert.throws(()=>buildPayload({message:'Leé',attachments:[attachment,attachment]}));
+ assert.throws(()=>buildPayload({message:'Leé',attachments:Array(6).fill(attachment)}));
 });

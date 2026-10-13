@@ -567,7 +567,7 @@ const handler = require("../api/agent");
     await page.locator('#agent-launcher').click();
     await page.locator('#agent-file').setInputFiles({name:'factura.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 test')});
     await page.waitForFunction(()=>agentDocuments.context().length===1);
-    assert.equal(await page.locator('#agent-file-name').textContent(),'factura.pdf');
+    assert.ok((await page.locator('#agent-file-name').textContent()).includes('factura.pdf'));
     const docResult=await page.evaluate(async()=>{
       const plan=agentEngine.prepare({name:'attach_uploaded_document',call_id:'doc-call',arguments:{file_id:agentDocuments.context()[0].file_id,client_id:'doc-client',job_id:'doc-job'}});
       await agentEngine.stage(plan);
@@ -672,6 +672,14 @@ const handler = require("../api/agent");
     await page.locator('#agent-input').fill('Leé este CV y dame tu opinión');await page.locator('#agent-send').click();await page.getByText('El CV muestra experiencia en Medicina del Trabajo.',{exact:true}).waitFor();
     assert.equal(cvRequest.attachments[0].data,'data:application/pdf;base64,'+cvBuffer.toString('base64'));assert.equal(cvRequest.attachments[0].name,'cv-prueba.pdf');assert.equal(cvRequest.context.attachments[0].data,undefined);
     assert.equal(await page.evaluate(()=>JSON.stringify({clients:state.clients,candidates:state.candidates,jobs:state.jobs,documents:state.documentFiles})),recordsBefore);
+    await page.locator('#agent-file-remove').click();
+    const proposalA=Buffer.from('%PDF-1.4\nPropuesta A: honorarios 10%'),proposalB=Buffer.from('Propuesta B: honorarios 15%');
+    await page.locator('#agent-file').setInputFiles([{name:'propuesta-a.pdf',mimeType:'application/pdf',buffer:proposalA},{name:'propuesta-b.txt',mimeType:'text/plain',buffer:proposalB}]);
+    await page.waitForFunction(()=>agentDocuments.context().length===2);
+    let comparisonRequest;
+    await page.route('**/api/agent',async route=>{comparisonRequest=route.request().postDataJSON();const payload=require('../lib/agent/service').buildPayload(comparisonRequest);assert.equal(payload.input[0].content.length,3);assert.equal(payload.input[0].content[1].filename,'propuesta-a.pdf');assert.ok(payload.input[0].content[2].text.includes('15%'));return route.fulfill({json:{response_id:'compare-documents',text:'La propuesta A tiene honorarios del 10% y la B del 15%.',calls:[]}});});
+    await page.locator('#agent-input').fill('Compará estas propuestas de colaboración');await page.locator('#agent-send').click();await page.getByText('La propuesta A tiene honorarios del 10% y la B del 15%.',{exact:true}).waitFor();assert.equal(comparisonRequest.attachments.length,2);assert.deepEqual(comparisonRequest.context.attachments.map(f=>f.name),['propuesta-a.pdf','propuesta-b.txt']);
+    await page.locator('#agent-file-name [data-remove-agent-file]').first().click();assert.deepEqual(await page.evaluate(()=>agentDocuments.context().map(f=>f.name)),['propuesta-b.txt']);
     assert.deepEqual(errors, []);
     console.log(
       "PASS browser: UI approval, shared forms, pipeline/notes, finance/reversal, calendar, proposals, reports, WhatsApp, every Hub view, HTML errors; no uncaught JS errors",
